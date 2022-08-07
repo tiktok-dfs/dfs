@@ -1,7 +1,7 @@
 package namenode
 
 import (
-	"go-fs/util"
+	"go-fs/pkg/util"
 	"log"
 	"testing"
 )

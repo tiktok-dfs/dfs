@@ -3,7 +3,7 @@ package client
 import (
 	"go-fs/datanode"
 	"go-fs/namenode"
-	"go-fs/util"
+	"go-fs/pkg/util"
 	"net/rpc"
 	"os"
 )
@@ -14,7 +14,12 @@ func Put(nameNodeInstance *rpc.Client, sourceFilePath string, destFilePath strin
 
 	// 拿到size为了给文件分片(block), 每个block会被分配到不同的data node中
 	fileSize := uint64(fileSizeHandler.Size())
-	request := namenode.NameNodeWriteRequest{FileName: sourceFilePath, FileSize: fileSize}
+
+	fileName, err := util.FileName(destFilePath)
+	util.Check(err)
+
+	request := namenode.NameNodeWriteRequest{FileName: fileName, FileSize: fileSize}
+
 	var reply []namenode.NameNodeMetaData
 
 	// namenode 的 writeData并不是真的写入, 返回的reply包含每一个文件的block应该被写入的data node 的地址
@@ -63,18 +68,22 @@ func Put(nameNodeInstance *rpc.Client, sourceFilePath string, destFilePath strin
 	return
 }
 
-func Get(nameNodeInstance *rpc.Client, fileName string) (fileContents string, getStatus bool) {
+func Get(nameNodeInstance *rpc.Client, sourceFilePath string) (fileContents string, getStatus bool) {
+
+	fileName, err := util.FileName(sourceFilePath)
+	util.Check(err)
+
 	request := namenode.NameNodeReadRequest{FileName: fileName}
 	var reply []namenode.NameNodeMetaData
 
 	// name node 并不是真的读数据, 返回的reply包含每一个文件的block 存放在data node 的地址
-	err := nameNodeInstance.Call("Service.ReadData", request, &reply)
+	err = nameNodeInstance.Call("Service.ReadData", request, &reply)
 	util.Check(err)
 
 	fileContents = ""
 
 	for _, metaData := range reply {
-		blockId := metaData.BlockId
+		//blockId := metaData.BlockId
 		blockAddresses := metaData.BlockAddresses
 		// block被获取的标志位
 		blockFetchStatus := false
@@ -90,7 +99,7 @@ func Get(nameNodeInstance *rpc.Client, fileName string) (fileContents string, ge
 			defer dataNodeInstance.Close()
 
 			request := datanode.DataNodeGetRequest{
-				BlockId: blockId,
+				FilePath: sourceFilePath,
 			}
 			var reply datanode.DataNodeData
 

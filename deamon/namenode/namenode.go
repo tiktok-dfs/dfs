@@ -3,7 +3,7 @@ package namenode
 import (
 	"go-fs/datanode"
 	"go-fs/namenode"
-	"go-fs/util"
+	"go-fs/pkg/util"
 	"log"
 	"net"
 	"net/rpc"

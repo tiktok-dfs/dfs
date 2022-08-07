@@ -3,7 +3,8 @@ package datanode
 import (
 	"bufio"
 	"errors"
-	"go-fs/util"
+	"go-fs/pkg/e"
+	"go-fs/pkg/util"
 	"io/ioutil"
 	"log"
 	"net/rpc"
@@ -26,7 +27,8 @@ type DataNodePutRequest struct {
 }
 
 type DataNodeGetRequest struct {
-	BlockId string
+	//BlockId string
+	FilePath string
 }
 
 type DataNodeWriteStatus struct {
@@ -94,17 +96,14 @@ func (dataNode *Service) forwardForReplication(request *DataNodePutRequest, repl
 func (dataNode *Service) PutData(request *DataNodePutRequest, reply *DataNodeWriteStatus) error {
 	filePath, fileName := path.Split(path.Join(dataNode.DataDirectory, request.FilePath))
 	filePathExist, err := util.PathExist(filePath)
-	if err != nil {
-		panic(err)
-	}
+	util.Check(err)
+
 	if !filePathExist {
 		err := os.MkdirAll(filePath, 0750)
-		if err != nil {
-			panic(err)
-		}
+		util.Check(err)
 	}
 
-	fileWriteHandler, err := os.Create(path.Join(filePath + fileName))
+	fileWriteHandler, err := os.Create(path.Join(filePath, fileName))
 	util.Check(err)
 	defer fileWriteHandler.Close()
 
@@ -118,7 +117,16 @@ func (dataNode *Service) PutData(request *DataNodePutRequest, reply *DataNodeWri
 }
 
 func (dataNode *Service) GetData(request *DataNodeGetRequest, reply *DataNodeData) error {
-	dataBytes, err := ioutil.ReadFile(dataNode.DataDirectory + request.BlockId)
+	filePath := path.Join(dataNode.DataDirectory, request.FilePath)
+	//dataBytes, err := ioutil.ReadFile(dataNode.DataDirectory + request.BlockId)
+	filePathExist, err := util.PathExist(filePath)
+	util.Check(err)
+
+	if !filePathExist {
+		return e.FileDoesNotExist
+	}
+
+	dataBytes, err := ioutil.ReadFile(filePath)
 	util.Check(err)
 
 	*reply = DataNodeData{Data: string(dataBytes)}

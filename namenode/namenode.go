@@ -2,7 +2,7 @@ package namenode
 
 import (
 	"go-fs/datanode"
-	"go-fs/util"
+	"go-fs/pkg/util"
 	"log"
 	"math"
 	"math/rand"
@@ -80,6 +80,11 @@ func (nameNode *Service) GetBlockSize(request bool, reply *uint64) error {
 
 // ReadData 返回metadata, 包含该文件每一个block的id与data node的地址
 func (nameNode *Service) ReadData(request *NameNodeReadRequest, reply *[]NameNodeMetaData) error {
+	log.Println(nameNode.FileNameToBlocks)
+	_, ok := nameNode.FileNameToBlocks[request.FileName]
+	if !ok {
+		panic("1111111")
+	}
 	fileBlocks := nameNode.FileNameToBlocks[request.FileName]
 
 	for _, block := range fileBlocks {
@@ -205,8 +210,29 @@ func (nameNode *Service) ReDistributeData(request *ReDistributeDataRequest, repl
 
 		defer dataNodeInstance.Close()
 
+		// 找到要迁移的block的文件路径
+		var filePath string
+		var foundFilePath bool
+
+		for fp, blockIds := range nameNode.FileNameToBlocks {
+			for _, blockId := range blockIds {
+				if blockToReplicate.BlockId == blockId {
+					filePath = fp
+					foundFilePath = true
+					break
+				}
+			}
+
+			if foundFilePath {
+				break
+			} else {
+				log.Println("Cannot found filePath for a UnderReplicatedBlock, reDistributeData failed")
+			}
+		}
+
 		getRequest := datanode.DataNodeGetRequest{
-			BlockId: blockToReplicate.BlockId,
+			//BlockId: blockToReplicate.BlockId,
+			FilePath: filePath,
 		}
 		var getReply datanode.DataNodeData
 

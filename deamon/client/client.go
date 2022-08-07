@@ -2,7 +2,7 @@ package client
 
 import (
 	"go-fs/client"
-	"go-fs/util"
+	"go-fs/pkg/util"
 	"log"
 	"net"
 	"net/rpc"
@@ -15,11 +15,11 @@ func PutHandler(nameNodeAddress string, sourceFilePath string, destFilePath stri
 	return client.Put(rpcClient, sourceFilePath, destFilePath)
 }
 
-func GetHandler(nameNodeAddress string, fileName string) (string, bool) {
+func GetHandler(nameNodeAddress string, sourceFilePath string) (string, bool) {
 	rpcClient, err := initializeClientUtil(nameNodeAddress)
 	util.Check(err)
 	defer rpcClient.Close()
-	return client.Get(rpcClient, fileName)
+	return client.Get(rpcClient, sourceFilePath)
 }
 
 func initializeClientUtil(nameNodeAddress string) (*rpc.Client, error) {

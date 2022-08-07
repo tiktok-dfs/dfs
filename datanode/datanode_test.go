@@ -1,7 +1,7 @@
 package datanode
 
 import (
-	"go-fs/util"
+	"go-fs/pkg/util"
 	"os"
 	"testing"
 )

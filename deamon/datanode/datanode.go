@@ -3,7 +3,7 @@ package datanode
 import (
 	"errors"
 	"go-fs/datanode"
-	"go-fs/util"
+	"go-fs/pkg/util"
 	"log"
 	"net"
 	"net/rpc"
