@@ -3,9 +3,9 @@ package client
 import (
 	"go-fs/client"
 	"go-fs/pkg/util"
-	"log"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"net"
-	"net/rpc"
 )
 
 func PutHandler(nameNodeAddress string, sourceFilePath string, destFilePath string) bool {
@@ -22,10 +22,9 @@ func GetHandler(nameNodeAddress string, sourceFilePath string) (string, bool) {
 	return client.Get(rpcClient, sourceFilePath)
 }
 
-func initializeClientUtil(nameNodeAddress string) (*rpc.Client, error) {
+func initializeClientUtil(nameNodeAddress string) (*grpc.ClientConn, error) {
 	host, port, err := net.SplitHostPort(nameNodeAddress)
 	util.Check(err)
 
-	log.Printf("NameNode to connect to is %s\n", nameNodeAddress)
-	return rpc.Dial("tcp", host+":"+port)
+	return grpc.Dial(host+":"+port, grpc.WithTransportCredentials(insecure.NewCredentials()))
 }

@@ -1,14 +1,19 @@
 package client
 
 import (
+	"context"
 	"go-fs/datanode"
-	"go-fs/namenode"
+	"go-fs/pkg/converter"
 	"go-fs/pkg/util"
+	namenode_pb "go-fs/proto/namenode"
+	"google.golang.org/grpc"
 	"net/rpc"
 	"os"
 )
 
-func Put(nameNodeInstance *rpc.Client, sourceFilePath string, destFilePath string) (putStatus bool) {
+func Put(nameNodeConn *grpc.ClientConn, sourceFilePath string, destFilePath string) (putStatus bool) {
+	nameNodeInstance := namenode_pb.NewNameNodeServiceClient(nameNodeConn)
+
 	fileSizeHandler, err := os.Stat(sourceFilePath)
 	util.Check(err)
 
@@ -18,24 +23,29 @@ func Put(nameNodeInstance *rpc.Client, sourceFilePath string, destFilePath strin
 	fileName, err := util.FileName(destFilePath)
 	util.Check(err)
 
-	request := namenode.NameNodeWriteRequest{FileName: fileName, FileSize: fileSize}
-
-	var reply []namenode.NameNodeMetaData
+	namenodeWriteRequest := &namenode_pb.WriteRequest{FileName: fileName, FileSize: fileSize}
 
 	// namenode 的 writeData并不是真的写入, 返回的reply包含每一个文件的block应该被写入的data node 的地址
-	err = nameNodeInstance.Call("Service.WriteData", request, &reply)
+	writeResponse, err := nameNodeInstance.WriteData(context.Background(), namenodeWriteRequest)
 	util.Check(err)
 
 	var blockSize uint64
-	err = nameNodeInstance.Call("Service.GetBlockSize", true, &blockSize)
+
+	namenodeGetBlockSizeRequest := &namenode_pb.GetBlockSizeRequest{Request: true}
+
+	blockSizeResponse, err := nameNodeInstance.GetBlockSize(context.Background(), namenodeGetBlockSizeRequest)
 	util.Check(err)
+
+	blockSize = blockSizeResponse.BlockSize
 
 	fileHandler, err := os.Open(sourceFilePath)
 	util.Check(err)
 
 	// buffer 每次只读全局设定的block size 或 更少的数据
 	dataStagingBytes := make([]byte, blockSize)
-	for _, metaData := range reply {
+	for _, pbMetaData := range writeResponse.NameNodeMetaDataList {
+		metaData := converter.Pb2NameNodeMetaData(pbMetaData)
+
 		// n代表着实际读到的byte数
 		n, err := fileHandler.Read(dataStagingBytes)
 		util.Check(err)
@@ -68,21 +78,23 @@ func Put(nameNodeInstance *rpc.Client, sourceFilePath string, destFilePath strin
 	return
 }
 
-func Get(nameNodeInstance *rpc.Client, sourceFilePath string) (fileContents string, getStatus bool) {
+func Get(nameNodeConn *grpc.ClientConn, sourceFilePath string) (fileContents string, getStatus bool) {
+	nameNodeInstance := namenode_pb.NewNameNodeServiceClient(nameNodeConn)
 
 	fileName, err := util.FileName(sourceFilePath)
 	util.Check(err)
 
-	request := namenode.NameNodeReadRequest{FileName: fileName}
-	var reply []namenode.NameNodeMetaData
+	nameNodeReadRequest := &namenode_pb.ReadRequst{FileName: fileName}
 
 	// name node 并不是真的读数据, 返回的reply包含每一个文件的block 存放在data node 的地址
-	err = nameNodeInstance.Call("Service.ReadData", request, &reply)
+	readResponse, err := nameNodeInstance.ReadData(context.Background(), nameNodeReadRequest)
 	util.Check(err)
 
 	fileContents = ""
 
-	for _, metaData := range reply {
+	for _, pbMetaData := range readResponse.NameNodeMetaDataList {
+		metaData := converter.Pb2NameNodeMetaData(pbMetaData)
+
 		//blockId := metaData.BlockId
 		blockAddresses := metaData.BlockAddresses
 		// block被获取的标志位

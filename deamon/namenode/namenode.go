@@ -1,13 +1,21 @@
 package namenode
 
 import (
+	"fmt"
 	"go-fs/datanode"
 	"go-fs/namenode"
 	"go-fs/pkg/util"
+	namenode_pb "go-fs/proto/namenode"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/health"
+	"google.golang.org/grpc/health/grpc_health_v1"
 	"log"
 	"net"
 	"net/rpc"
+	"os"
+	"os/signal"
 	"strconv"
+	"syscall"
 	"time"
 )
 
@@ -65,6 +73,7 @@ func discoverDataNodes(nameNodeInstance *namenode.Service, listOfDataNodes *[]st
 
 func InitializeNameNodeUtil(serverPort int, blockSize int, replicationFactor int, listOfDataNodes []string) {
 	nameNodeInstance := namenode.NewService(uint64(blockSize), uint64(replicationFactor), uint16(serverPort))
+
 	err := discoverDataNodes(nameNodeInstance, &listOfDataNodes)
 	util.Check(err)
 
@@ -75,17 +84,33 @@ func InitializeNameNodeUtil(serverPort int, blockSize int, replicationFactor int
 
 	go heartbeatToDataNodes(listOfDataNodes, nameNodeInstance)
 
-	err = rpc.Register(nameNodeInstance)
+	addr := ":" + strconv.Itoa(serverPort)
+
+	listener, err := net.Listen("tcp", addr)
 	util.Check(err)
 
-	rpc.HandleHTTP()
-	listener, err := net.Listen("tcp", ":"+strconv.Itoa(serverPort))
-	util.Check(err)
-	defer listener.Close()
+	server := grpc.NewServer()
+	namenode_pb.RegisterNameNodeServiceServer(server, nameNodeInstance)
 
-	rpc.Accept(listener)
+	grpc_health_v1.RegisterHealthServer(server, health.NewServer())
+
+	go func() {
+		if err := server.Serve(listener); err != nil {
+			log.Printf(fmt.Sprintf("Server Serve failed in %s", addr), "err", err.Error())
+			panic(err)
+		}
+	}()
 
 	log.Println("NameNode daemon started on port: " + strconv.Itoa(serverPort))
+
+	// graceful shutdown
+	sig := make(chan os.Signal)
+	signal.Notify(sig, syscall.SIGINT, syscall.SIGKILL)
+
+	<-sig
+
+	server.GracefulStop()
+
 }
 
 // heartbeatToDataNodes 每五秒钟, 进行健康检查
