@@ -1,0 +1,54 @@
+syntax = "proto3";
+
+package datanode;
+option go_package = "./proto/datanode";
+
+service DataNode {
+  rpc Ping(PingReq) returns (PingResp){}
+  rpc HeartBeat(HeartBeatReq) returns (HeartBeatResp){}
+  rpc Put(PutReq) returns (PutResp){}
+  rpc Get(GetReq) returns (GetResp){}
+}
+
+message PingReq {
+  string Host = 1;
+  uint32 Port = 2;
+}
+
+message PingResp {
+  bool Success = 1;
+}
+
+message HeartBeatReq {
+  bool Request = 1;
+}
+
+message HeartBeatResp{
+  bool Success = 1;
+}
+
+message PutReq {
+  string Path = 1;
+  string BlockId = 2;
+  string Data = 3;
+  repeated DataNodeInstance ReplicationNodes = 4;
+  //有一个数组参数：副本DataNode节点
+}
+
+message DataNodeInstance {
+  string Host = 1;
+  string ServicePort = 2;
+}
+
+message PutResp {
+  bool Success = 1;
+}
+
+message GetReq {
+  string BlockId = 1;
+}
+
+message GetResp {
+  string Data = 1;
+}
+

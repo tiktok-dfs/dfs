@@ -1,17 +1,18 @@
 package namenode
 
 import (
+	"context"
 	"fmt"
-	"go-fs/datanode"
 	"go-fs/namenode"
 	"go-fs/pkg/util"
+	dn "go-fs/proto/datanode"
 	namenode_pb "go-fs/proto/namenode"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/health"
 	"google.golang.org/grpc/health/grpc_health_v1"
 	"log"
 	"net"
-	"net/rpc"
 	"os"
 	"os/signal"
 	"strconv"
@@ -23,7 +24,7 @@ func removeElementFromSlice(elements []string, index int) []string {
 	return append(elements[:index], elements[index+1:]...)
 }
 
-// discoverDataNodes 发现 data node
+// discoverDataNodes 发现 data1 node
 func discoverDataNodes(nameNodeInstance *namenode.Service, listOfDataNodes *[]string) error {
 	nameNodeInstance.IdToDataNodes = make(map[uint64]util.DataNodeInstance)
 
@@ -36,19 +37,21 @@ func discoverDataNodes(nameNodeInstance *namenode.Service, listOfDataNodes *[]st
 		host := "localhost"
 		serverPort := 7000
 
-		pingRequest := datanode.NameNodePingRequest{Host: host, Port: nameNodeInstance.Port}
-		var pingResponse datanode.NameNodePingResponse
+		pingRequest := dn.PingReq{
+			Host: host,
+			Port: uint32(nameNodeInstance.Port),
+		}
 
 		for serverPort < 7050 {
 			dataNodeUri := host + ":" + strconv.Itoa(serverPort)
-			dataNodeInstance, initErr := rpc.Dial("tcp", dataNodeUri)
+			dataNodeInstance, initErr := grpc.Dial(dataNodeUri, grpc.WithTransportCredentials(insecure.NewCredentials()))
 			if initErr == nil {
 				*listOfDataNodes = append(*listOfDataNodes, dataNodeUri)
 				log.Printf("Discovered DataNode %s\n", dataNodeUri)
 
-				pingErr := dataNodeInstance.Call("Service.Ping", pingRequest, &pingResponse)
+				resp, pingErr := dn.NewDataNodeClient(dataNodeInstance).Ping(context.Background(), &pingRequest)
 				util.Check(pingErr)
-				if pingResponse.Ack {
+				if resp.Success {
 					log.Printf("Ack received from %s\n", dataNodeUri)
 				} else {
 					log.Printf("No ack received from %s\n", dataNodeUri)
@@ -117,7 +120,7 @@ func InitializeNameNodeUtil(serverPort int, blockSize int, replicationFactor int
 func heartbeatToDataNodes(listOfDataNodes []string, nameNode *namenode.Service) {
 	for range time.Tick(time.Second * 5) {
 		for i, hostPort := range listOfDataNodes {
-			dataNodeClient, connectionErr := rpc.Dial("tcp", hostPort)
+			dataNodeClient, connectionErr := grpc.Dial(hostPort, grpc.WithTransportCredentials(insecure.NewCredentials()))
 
 			// 如果连接失败, 进行迁移
 			if connectionErr != nil {
@@ -131,9 +134,10 @@ func heartbeatToDataNodes(listOfDataNodes []string, nameNode *namenode.Service) 
 			}
 
 			// 如果心跳检测失败, 进行迁移
-			var response bool
-			hbErr := dataNodeClient.Call("Service.Heartbeat", true, &response)
-			if hbErr != nil || !response {
+			response, hbErr := dn.NewDataNodeClient(dataNodeClient).HeartBeat(context.Background(), &dn.HeartBeatReq{
+				Request: true,
+			})
+			if hbErr != nil || !response.Success {
 				log.Printf("No heartbeat received from %s\n", hostPort)
 				var reply bool
 				reDistributeError := nameNode.ReDistributeData(&namenode.ReDistributeDataRequest{DataNodeUri: hostPort}, &reply)

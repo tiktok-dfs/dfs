@@ -1,6 +1,6 @@
 package datanode
 
-import (
+/*import (
 	"go-fs/pkg/util"
 	"os"
 	"testing"
@@ -20,7 +20,7 @@ func TestDataNodeServiceCreation(t *testing.T) {
 	}
 }
 
-// Test writing data in single file without dir paths within DataNode
+// Test writing data1 in single file without dir paths within DataNode
 func TestDataNodeServiceWriteFile(t *testing.T) {
 	testDataNodeService := new(Service)
 	testDataNodeService.DataDirectory = "./workdir/"
@@ -37,7 +37,7 @@ func TestDataNodeServiceWriteFile(t *testing.T) {
 	testDataNodeService.PutData(&putRequestPayload, &replyPayload)
 
 	if !replyPayload.Status {
-		t.Errorf("Unable to write data correctly; Expected: %t, found: %t", true, replyPayload.Status)
+		t.Errorf("Unable to write data1 correctly; Expected: %t, found: %t", true, replyPayload.Status)
 	}
 
 	// clean up
@@ -47,7 +47,7 @@ func TestDataNodeServiceWriteFile(t *testing.T) {
 	}
 
 	if !filePathExist {
-		t.Error("Unable to write data correctly; No file putted")
+		t.Error("Unable to write data1 correctly; No file putted")
 	}
 
 	err = os.RemoveAll("./workdir")
@@ -56,7 +56,7 @@ func TestDataNodeServiceWriteFile(t *testing.T) {
 	}
 }
 
-// Test writing data in single file with dir paths within DataNode
+// Test writing data1 in single file with dir paths within DataNode
 func TestDataNodeServiceWriteFileWithDirPaths(t *testing.T) {
 	testDataNodeService := new(Service)
 	testDataNodeService.DataDirectory = "./workdir/"
@@ -73,7 +73,7 @@ func TestDataNodeServiceWriteFileWithDirPaths(t *testing.T) {
 	testDataNodeService.PutData(&putRequestPayload, &replyPayload)
 
 	if !replyPayload.Status {
-		t.Errorf("Unable to write data correctly; Expected: %t, found: %t", true, replyPayload.Status)
+		t.Errorf("Unable to write data1 correctly; Expected: %t, found: %t", true, replyPayload.Status)
 	}
 
 	// clean up
@@ -83,7 +83,7 @@ func TestDataNodeServiceWriteFileWithDirPaths(t *testing.T) {
 	}
 
 	if !filePathExist {
-		t.Error("Unable to write data correctly; No file putted")
+		t.Error("Unable to write data1 correctly; No file putted")
 	}
 
 	err = os.RemoveAll("./workdir")
@@ -91,8 +91,8 @@ func TestDataNodeServiceWriteFileWithDirPaths(t *testing.T) {
 		t.Errorf("Unexpected Error! Please Clean up the test risidual file manually")
 	}
 }
-
-// Test reading data within DataNode
+*/
+// Test reading data1 within DataNode
 //func TestDataNodeServiceRead(t *testing.T) {
 //testDataNodeService := new(Service)
 //testDataNodeService.DataDirectory = "./"
@@ -103,6 +103,6 @@ func TestDataNodeServiceWriteFileWithDirPaths(t *testing.T) {
 //testDataNodeService.GetData(&getRequestPayload, &replyPayload)
 
 //if strings.Compare(replyPayload.Data, "Hello world") != 0 {
-//t.Errorf("Unable to read data correctly; Expected: %s, found: %s.", "Hello world", replyPayload.Data)
+//t.Errorf("Unable to read data1 correctly; Expected: %s, found: %s.", "Hello world", replyPayload.Data)
 //}
 //}

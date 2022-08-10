@@ -19,9 +19,9 @@ mkdir .dndata1/ .dndata2/ .dndata3
 在不同的 terminal 下, 启动三个 data node 端口为 7001, 7002, 7003
 
 ```bash
-./godfs datanode --port 7001 --data-location .dndata1/
-./godfs datanode --port 7002 --data-location .dndata2/
-./godfs datanode --port 7003 --data-location .dndata3/
+./godfs datanode --port 7001 --data1-location .dndata1/
+./godfs datanode --port 7002 --data1-location .dndata2/
+./godfs datanode --port 7003 --data1-location .dndata3/
 ```
 
 <div align=center><img src="https://tva1.sinaimg.cn/large/006cK6rNly1h4llm29fzoj30pp0fagwr.jpg"></div>
