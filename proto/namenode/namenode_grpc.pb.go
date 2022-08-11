@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.2.0
 // - protoc             v3.21.4
-// source: namenode.proto
+// source: proto/namenode/namenode.proto
 
 package namenode
 
@@ -25,6 +25,7 @@ type NameNodeServiceClient interface {
 	GetBlockSize(ctx context.Context, in *GetBlockSizeRequest, opts ...grpc.CallOption) (*GetBlockSizeResponse, error)
 	ReadData(ctx context.Context, in *ReadRequst, opts ...grpc.CallOption) (*ReadResponse, error)
 	WriteData(ctx context.Context, in *WriteRequest, opts ...grpc.CallOption) (*WriteResponse, error)
+	DeleteData(ctx context.Context, in *DeleteDataReq, opts ...grpc.CallOption) (*DeleteDataResp, error)
 }
 
 type nameNodeServiceClient struct {
@@ -62,6 +63,15 @@ func (c *nameNodeServiceClient) WriteData(ctx context.Context, in *WriteRequest,
 	return out, nil
 }
 
+func (c *nameNodeServiceClient) DeleteData(ctx context.Context, in *DeleteDataReq, opts ...grpc.CallOption) (*DeleteDataResp, error) {
+	out := new(DeleteDataResp)
+	err := c.cc.Invoke(ctx, "/namenode_.NameNodeService/DeleteData", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // NameNodeServiceServer is the server API for NameNodeService service.
 // All implementations must embed UnimplementedNameNodeServiceServer
 // for forward compatibility
@@ -69,6 +79,7 @@ type NameNodeServiceServer interface {
 	GetBlockSize(context.Context, *GetBlockSizeRequest) (*GetBlockSizeResponse, error)
 	ReadData(context.Context, *ReadRequst) (*ReadResponse, error)
 	WriteData(context.Context, *WriteRequest) (*WriteResponse, error)
+	DeleteData(context.Context, *DeleteDataReq) (*DeleteDataResp, error)
 	mustEmbedUnimplementedNameNodeServiceServer()
 }
 
@@ -84,6 +95,9 @@ func (UnimplementedNameNodeServiceServer) ReadData(context.Context, *ReadRequst)
 }
 func (UnimplementedNameNodeServiceServer) WriteData(context.Context, *WriteRequest) (*WriteResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method WriteData not implemented")
+}
+func (UnimplementedNameNodeServiceServer) DeleteData(context.Context, *DeleteDataReq) (*DeleteDataResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteData not implemented")
 }
 func (UnimplementedNameNodeServiceServer) mustEmbedUnimplementedNameNodeServiceServer() {}
 
@@ -152,6 +166,24 @@ func _NameNodeService_WriteData_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
+func _NameNodeService_DeleteData_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteDataReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NameNodeServiceServer).DeleteData(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/namenode_.NameNodeService/DeleteData",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NameNodeServiceServer).DeleteData(ctx, req.(*DeleteDataReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // NameNodeService_ServiceDesc is the grpc.ServiceDesc for NameNodeService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -171,7 +203,11 @@ var NameNodeService_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "WriteData",
 			Handler:    _NameNodeService_WriteData_Handler,
 		},
+		{
+			MethodName: "DeleteData",
+			Handler:    _NameNodeService_DeleteData_Handler,
+		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "namenode.proto",
+	Metadata: "proto/namenode/namenode.proto",
 }

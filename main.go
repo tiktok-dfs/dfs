@@ -61,6 +61,10 @@ func main() {
 			if status {
 				log.Println(contents)
 			}
+
+		} else if *clientOperationPtr == "delete" {
+			status := client.DeleteHandler(*clientNameNodePortPtr, *clientFilenamePtr)
+			log.Println("Delete Status:", status)
 		}
 	}
 }
