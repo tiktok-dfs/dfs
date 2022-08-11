@@ -26,6 +26,7 @@ type NameNodeServiceClient interface {
 	ReadData(ctx context.Context, in *ReadRequst, opts ...grpc.CallOption) (*ReadResponse, error)
 	WriteData(ctx context.Context, in *WriteRequest, opts ...grpc.CallOption) (*WriteResponse, error)
 	DeleteData(ctx context.Context, in *DeleteDataReq, opts ...grpc.CallOption) (*DeleteDataResp, error)
+	StatData(ctx context.Context, in *StatDataReq, opts ...grpc.CallOption) (*StatDataResp, error)
 }
 
 type nameNodeServiceClient struct {
@@ -72,6 +73,15 @@ func (c *nameNodeServiceClient) DeleteData(ctx context.Context, in *DeleteDataRe
 	return out, nil
 }
 
+func (c *nameNodeServiceClient) StatData(ctx context.Context, in *StatDataReq, opts ...grpc.CallOption) (*StatDataResp, error) {
+	out := new(StatDataResp)
+	err := c.cc.Invoke(ctx, "/namenode_.NameNodeService/StatData", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // NameNodeServiceServer is the server API for NameNodeService service.
 // All implementations must embed UnimplementedNameNodeServiceServer
 // for forward compatibility
@@ -80,6 +90,7 @@ type NameNodeServiceServer interface {
 	ReadData(context.Context, *ReadRequst) (*ReadResponse, error)
 	WriteData(context.Context, *WriteRequest) (*WriteResponse, error)
 	DeleteData(context.Context, *DeleteDataReq) (*DeleteDataResp, error)
+	StatData(context.Context, *StatDataReq) (*StatDataResp, error)
 	mustEmbedUnimplementedNameNodeServiceServer()
 }
 
@@ -98,6 +109,9 @@ func (UnimplementedNameNodeServiceServer) WriteData(context.Context, *WriteReque
 }
 func (UnimplementedNameNodeServiceServer) DeleteData(context.Context, *DeleteDataReq) (*DeleteDataResp, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteData not implemented")
+}
+func (UnimplementedNameNodeServiceServer) StatData(context.Context, *StatDataReq) (*StatDataResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method StatData not implemented")
 }
 func (UnimplementedNameNodeServiceServer) mustEmbedUnimplementedNameNodeServiceServer() {}
 
@@ -184,6 +198,24 @@ func _NameNodeService_DeleteData_Handler(srv interface{}, ctx context.Context, d
 	return interceptor(ctx, in, info, handler)
 }
 
+func _NameNodeService_StatData_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(StatDataReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NameNodeServiceServer).StatData(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/namenode_.NameNodeService/StatData",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NameNodeServiceServer).StatData(ctx, req.(*StatDataReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // NameNodeService_ServiceDesc is the grpc.ServiceDesc for NameNodeService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -206,6 +238,10 @@ var NameNodeService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteData",
 			Handler:    _NameNodeService_DeleteData_Handler,
+		},
+		{
+			MethodName: "StatData",
+			Handler:    _NameNodeService_StatData_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

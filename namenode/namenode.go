@@ -321,3 +321,29 @@ func (s *Service) DeleteData(c context.Context, req *namenode_pb.DeleteDataReq) 
 
 	return &res, nil
 }
+
+// StatData TODO 有些方法都是根据文件名获取block集合可以抽取成公共方法，方法名可以改为GetBlocksFromFileName
+func (s *Service) StatData(c context.Context, req *namenode_pb.StatDataReq) (*namenode_pb.StatDataResp, error) {
+	var res namenode_pb.StatDataResp
+
+	_, ok := s.FileNameToBlocks[req.FileName]
+	if !ok {
+		return nil, e.FileDoesNotExist
+	}
+	fileBlocks := s.FileNameToBlocks[req.FileName]
+
+	for _, block := range fileBlocks {
+		var blockAddresses []util.DataNodeInstance
+
+		log.Println("读取到的blockId为：", block)
+		targetDataNodeIds := s.BlockToDataNodeIds[block]
+		for _, dataNodeId := range targetDataNodeIds {
+			log.Println("读取到的blockAddresses为：", blockAddresses)
+			blockAddresses = append(blockAddresses, s.IdToDataNodes[dataNodeId])
+		}
+
+		res.NameNodeMetaDataList = append(res.NameNodeMetaDataList, NameNodeMetaData2PB(NameNodeMetaData{BlockId: block, BlockAddresses: blockAddresses}))
+	}
+
+	return &res, nil
+}

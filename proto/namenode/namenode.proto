@@ -8,6 +8,15 @@ service NameNodeService {
   rpc ReadData(ReadRequst) returns (ReadResponse);
   rpc WriteData(WriteRequest) returns (WriteResponse);
   rpc DeleteData(DeleteDataReq) returns (DeleteDataResp);
+  rpc StatData(StatDataReq) returns (StatDataResp);
+}
+
+message StatDataReq {
+  string fileName = 1;
+}
+
+message StatDataResp {
+  repeated NameNodeMetaData nameNodeMetaDataList = 1;
 }
 
 message DeleteDataReq {

@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"errors"
 	"go-fs/pkg/converter"
 	"go-fs/pkg/util"
 	dn "go-fs/proto/datanode"
@@ -10,7 +11,14 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"log"
 	"os"
+	"time"
 )
+
+type StatResp struct {
+	FileName string
+	FileSize int64
+	ModTime  time.Time
+}
 
 func Put(nameNodeConn *grpc.ClientConn, sourceFilePath string, destFilePath string) bool {
 	nameNodeInstance := namenode_pb.NewNameNodeServiceClient(nameNodeConn)
@@ -195,4 +203,49 @@ func Delete(nameNodeConn *grpc.ClientConn, filename string) bool {
 		}
 	}
 	return deleteStatus
+}
+
+func Stat(nameNodeConn *grpc.ClientConn, filename string) (*StatResp, error) {
+	resp, err := namenode_pb.NewNameNodeServiceClient(nameNodeConn).StatData(context.Background(), &namenode_pb.StatDataReq{
+		FileName: filename,
+	})
+	if err != nil {
+		log.Println("NameNode Stat Data Error:", err)
+		return nil, err
+	}
+	log.Println("NameNode Stat Resp:", resp.NameNodeMetaDataList)
+	var modTime int64
+	var size int64
+	n := 0
+	// block被获取的标志位
+	blockFetchStatus := false
+	for _, mdi := range resp.NameNodeMetaDataList {
+		for _, dni := range mdi.BlockAddresses {
+			conn, err := grpc.Dial(dni.Host+":"+dni.ServicePort, grpc.WithTransportCredentials(insecure.NewCredentials()))
+			if err != nil {
+				log.Println("cannot connect datanode:", dni.Host, ":", dni.ServicePort)
+				return nil, err
+			}
+			resp, err := dn.NewDataNodeClient(conn).Stat(context.Background(), &dn.StatReq{
+				BlockId: mdi.BlockId,
+			})
+			if err != nil {
+				log.Println("cannot dial method from datanode:", dni.Host, ":", dni.ServicePort)
+				return nil, err
+			}
+			size += resp.Size
+			modTime += resp.ModTime
+			n += 1
+			blockFetchStatus = true
+			break
+		}
+
+		if !blockFetchStatus {
+			return nil, errors.New("cannot Stat BlockId From DataNode" + mdi.BlockId)
+		}
+	}
+	return &StatResp{
+		ModTime:  time.Unix(modTime/int64(n), 0),
+		FileSize: size,
+	}, nil
 }
