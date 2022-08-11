@@ -2,133 +2,94 @@ package datanode
 
 import (
 	"bufio"
+	"context"
 	"errors"
-	"go-fs/pkg/e"
 	"go-fs/pkg/util"
+	dn "go-fs/proto/datanode"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"io/ioutil"
 	"log"
-	"net/rpc"
 	"os"
-	"path"
 )
 
-type Service struct {
+type Server struct {
+	dn.DataNodeServer
 	DataDirectory string
-	ServicePort   uint16
+	ServicePort   uint32
 	NameNodeHost  string
-	NameNodePort  uint16
+	NameNodePort  uint32
 }
 
-type DataNodePutRequest struct {
-	FilePath         string
-	BlockId          string
-	Data             string
-	ReplicationNodes []util.DataNodeInstance
+func (s *Server) Ping(c context.Context, req *dn.PingReq) (*dn.PingResp, error) {
+	//接收到NameNode的Ping请求
+	s.NameNodeHost = req.Host
+	s.NameNodePort = req.Port
+	log.Println("I am alive")
+	return &dn.PingResp{Success: true}, nil
 }
 
-type DataNodeGetRequest struct {
-	//BlockId string
-	FilePath string
-}
-
-type DataNodeWriteStatus struct {
-	Status bool
-}
-
-type DataNodeData struct {
-	Data string
-}
-
-type NameNodePingRequest struct {
-	Host string
-	Port uint16
-}
-
-type NameNodePingResponse struct {
-	Ack bool
-}
-
-func (dataNode *Service) Ping(request *NameNodePingRequest, reply *NameNodePingResponse) error {
-	dataNode.NameNodeHost = request.Host
-	dataNode.NameNodePort = request.Port
-	log.Printf("Received ping from NameNode, recorded as {NameNodeHost: %s, NameNodePort: %d}\n", dataNode.NameNodeHost, dataNode.NameNodePort)
-
-	*reply = NameNodePingResponse{Ack: true}
-	return nil
-}
-
-func (dataNode *Service) Heartbeat(request bool, response *bool) error {
-	if request {
-		log.Println("Received heartbeat from NameNode")
-		*response = true
-		return nil
+func (s *Server) HeartBeat(c context.Context, req *dn.HeartBeatReq) (*dn.HeartBeatResp, error) {
+	if req.Request {
+		log.Println("receive heart beat success")
+		return &dn.HeartBeatResp{Success: true}, nil
 	}
-	return errors.New("HeartBeatError")
+	return nil, errors.New("HeartBeatError")
 }
 
-func (dataNode *Service) forwardForReplication(request *DataNodePutRequest, reply *DataNodeWriteStatus) error {
+func (s *Server) forwardForReplication(request *dn.PutReq, reply *dn.PutResp) (*dn.PutResp, error) {
 	blockId := request.BlockId
 	blockAddresses := request.ReplicationNodes
-
 	if len(blockAddresses) == 0 {
-		return nil
+		log.Println("backup success")
+		return &dn.PutResp{Success: true}, nil
 	}
 
 	startingDataNode := blockAddresses[0]
+	log.Println("已经写入的blockAddress为:", startingDataNode)
 	remainingDataNodes := blockAddresses[1:]
+	log.Println("剩余可用的的blockAddress为:", remainingDataNodes)
 
-	dataNodeInstance, rpcErr := rpc.Dial("tcp", startingDataNode.Host+":"+startingDataNode.ServicePort)
+	dataNodeInstance, rpcErr := grpc.Dial(startingDataNode.Host+":"+startingDataNode.ServicePort, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	util.Check(rpcErr)
 	defer dataNodeInstance.Close()
 
-	payloadRequest := DataNodePutRequest{
-		FilePath:         request.FilePath,
+	log.Println("backup data to another datanode:", startingDataNode.Host, startingDataNode.ServicePort)
+	payloadRequest := dn.PutReq{
+		Path:             request.Path,
 		BlockId:          blockId,
 		Data:             request.Data,
 		ReplicationNodes: remainingDataNodes,
 	}
-
-	rpcErr = dataNodeInstance.Call("Service.PutData", payloadRequest, &reply)
+	resp, rpcErr := dn.NewDataNodeClient(dataNodeInstance).Put(context.Background(), &payloadRequest)
 	util.Check(rpcErr)
-	return nil
+	return resp, nil
 }
 
-func (dataNode *Service) PutData(request *DataNodePutRequest, reply *DataNodeWriteStatus) error {
-	filePath, fileName := path.Split(path.Join(dataNode.DataDirectory, request.FilePath))
-	filePathExist, err := util.PathExist(filePath)
-	util.Check(err)
-
-	if !filePathExist {
-		err := os.MkdirAll(filePath, 0750)
-		util.Check(err)
+func (s *Server) Put(c context.Context, req *dn.PutReq) (*dn.PutResp, error) {
+	log.Println("写入blockId为", req.BlockId)
+	fileWriteHandler, err := os.Create(s.DataDirectory + req.BlockId)
+	if err != nil {
+		log.Println("data directory create error:", err)
 	}
-
-	fileWriteHandler, err := os.Create(path.Join(filePath, fileName))
+	log.Println("data directory create success")
 	util.Check(err)
 	defer fileWriteHandler.Close()
 
 	fileWriter := bufio.NewWriter(fileWriteHandler)
-	_, err = fileWriter.WriteString(request.Data)
+	_, err = fileWriter.WriteString(req.Data)
 	util.Check(err)
 	fileWriter.Flush()
-	*reply = DataNodeWriteStatus{Status: true}
-
-	return dataNode.forwardForReplication(request, reply)
+	resp := dn.PutResp{Success: true}
+	replication, err := s.forwardForReplication(req, &resp)
+	return replication, nil
 }
 
-func (dataNode *Service) GetData(request *DataNodeGetRequest, reply *DataNodeData) error {
-	filePath := path.Join(dataNode.DataDirectory, request.FilePath)
-	//dataBytes, err := ioutil.ReadFile(dataNode.DataDirectory + request.BlockId)
-	filePathExist, err := util.PathExist(filePath)
-	util.Check(err)
-
-	if !filePathExist {
-		return e.FileDoesNotExist
+func (s *Server) Get(c context.Context, req *dn.GetReq) (*dn.GetResp, error) {
+	log.Println("读取的BlockId为：", req.BlockId)
+	dataBytes, err := ioutil.ReadFile(s.DataDirectory + req.BlockId)
+	if err != nil {
+		return &dn.GetResp{}, err
 	}
-
-	dataBytes, err := ioutil.ReadFile(filePath)
-	util.Check(err)
-
-	*reply = DataNodeData{Data: string(dataBytes)}
-	return nil
+	return &dn.GetResp{Data: string(dataBytes)}, nil
 }

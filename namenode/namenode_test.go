@@ -1,8 +1,9 @@
 package namenode
 
 import (
+	"context"
 	"go-fs/pkg/util"
-	"log"
+	namenode_pb "go-fs/proto/namenode"
 	"testing"
 )
 
@@ -41,16 +42,14 @@ func TestNameNodeServiceWrite(t *testing.T) {
 	testNameNodeService.IdToDataNodes[0] = testDataNodeInstance1
 	testNameNodeService.IdToDataNodes[1] = testDataNodeInstance2
 
-	writeDataPayload := NameNodeWriteRequest{
+	writeDataPayload := &namenode_pb.WriteRequest{
 		FileName: "foo",
 		FileSize: 12,
 	}
 
-	var replyPayload []NameNodeMetaData
-	err := testNameNodeService.WriteData(&writeDataPayload, &replyPayload)
-	log.Println(replyPayload)
+	response, err := testNameNodeService.WriteData(context.Background(), writeDataPayload)
 	util.Check(err)
-	if len(replyPayload) != 3 {
-		t.Errorf("Unable to set metadata correctly; Expected: %d, found: %d.", 3, len(replyPayload))
+	if len(response.NameNodeMetaDataList) != 3 {
+		t.Errorf("Unable to set metadata correctly; Expected: %d, found: %d.", 3, len(response.NameNodeMetaDataList))
 	}
 }
