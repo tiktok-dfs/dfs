@@ -107,3 +107,15 @@ func (s *Server) Delete(c context.Context, req *dn.DeleteReq) (*dn.DeleteResp, e
 	log.Println("成功删除文件")
 	return &dn.DeleteResp{Success: true}, nil
 }
+
+func (s *Server) Stat(c context.Context, req *dn.StatReq) (*dn.StatResp, error) {
+	stat, err := os.Stat(s.DataDirectory + req.BlockId)
+	if err != nil {
+		log.Println("cannot stat the file:", err)
+		return &dn.StatResp{}, err
+	}
+	return &dn.StatResp{
+		Size:    stat.Size(),
+		ModTime: stat.ModTime().Unix(),
+	}, nil
+}

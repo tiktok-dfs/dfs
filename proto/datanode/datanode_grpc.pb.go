@@ -27,6 +27,7 @@ type DataNodeClient interface {
 	Put(ctx context.Context, in *PutReq, opts ...grpc.CallOption) (*PutResp, error)
 	Get(ctx context.Context, in *GetReq, opts ...grpc.CallOption) (*GetResp, error)
 	Delete(ctx context.Context, in *DeleteReq, opts ...grpc.CallOption) (*DeleteResp, error)
+	Stat(ctx context.Context, in *StatReq, opts ...grpc.CallOption) (*StatResp, error)
 }
 
 type dataNodeClient struct {
@@ -82,6 +83,15 @@ func (c *dataNodeClient) Delete(ctx context.Context, in *DeleteReq, opts ...grpc
 	return out, nil
 }
 
+func (c *dataNodeClient) Stat(ctx context.Context, in *StatReq, opts ...grpc.CallOption) (*StatResp, error) {
+	out := new(StatResp)
+	err := c.cc.Invoke(ctx, "/datanode.DataNode/Stat", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // DataNodeServer is the server API for DataNode service.
 // All implementations must embed UnimplementedDataNodeServer
 // for forward compatibility
@@ -91,6 +101,7 @@ type DataNodeServer interface {
 	Put(context.Context, *PutReq) (*PutResp, error)
 	Get(context.Context, *GetReq) (*GetResp, error)
 	Delete(context.Context, *DeleteReq) (*DeleteResp, error)
+	Stat(context.Context, *StatReq) (*StatResp, error)
 	mustEmbedUnimplementedDataNodeServer()
 }
 
@@ -112,6 +123,9 @@ func (UnimplementedDataNodeServer) Get(context.Context, *GetReq) (*GetResp, erro
 }
 func (UnimplementedDataNodeServer) Delete(context.Context, *DeleteReq) (*DeleteResp, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Delete not implemented")
+}
+func (UnimplementedDataNodeServer) Stat(context.Context, *StatReq) (*StatResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Stat not implemented")
 }
 func (UnimplementedDataNodeServer) mustEmbedUnimplementedDataNodeServer() {}
 
@@ -216,6 +230,24 @@ func _DataNode_Delete_Handler(srv interface{}, ctx context.Context, dec func(int
 	return interceptor(ctx, in, info, handler)
 }
 
+func _DataNode_Stat_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(StatReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DataNodeServer).Stat(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/datanode.DataNode/Stat",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DataNodeServer).Stat(ctx, req.(*StatReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // DataNode_ServiceDesc is the grpc.ServiceDesc for DataNode service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -242,6 +274,10 @@ var DataNode_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Delete",
 			Handler:    _DataNode_Delete_Handler,
+		},
+		{
+			MethodName: "Stat",
+			Handler:    _DataNode_Stat_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

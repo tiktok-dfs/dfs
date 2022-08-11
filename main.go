@@ -65,6 +65,13 @@ func main() {
 		} else if *clientOperationPtr == "delete" {
 			status := client.DeleteHandler(*clientNameNodePortPtr, *clientFilenamePtr)
 			log.Println("Delete Status:", status)
+
+		} else if *clientOperationPtr == "stat" {
+			resp, err := client.StatHandler(*clientNameNodePortPtr, *clientFilenamePtr)
+			if err != nil {
+				log.Println("Stat Error:", err)
+			}
+			log.Println("Stat Data Message:\n", "FileName:", *clientFilenamePtr, "FileSize:", resp.FileSize, "FileModTime:", resp.ModTime)
 		}
 	}
 }
