@@ -7,6 +7,15 @@ service NameNodeService {
   rpc GetBlockSize(GetBlockSizeRequest) returns (GetBlockSizeResponse);
   rpc ReadData(ReadRequst) returns (ReadResponse);
   rpc WriteData(WriteRequest) returns (WriteResponse);
+  rpc DeleteData(DeleteDataReq) returns (DeleteDataResp);
+}
+
+message DeleteDataReq {
+  string fileName = 1;
+}
+
+message DeleteDataResp {
+  repeated NameNodeMetaData nameNodeMetaDataList = 1;
 }
 
 message DataNodeInstance {

@@ -123,7 +123,12 @@ func Get(nameNodeConn *grpc.ClientConn, sourceFilePath string) (fileContents str
 				continue
 			}
 
-			defer dataNodeInstance.Close()
+			defer func(dataNodeInstance *grpc.ClientConn) {
+				err := dataNodeInstance.Close()
+				if err != nil {
+					log.Println("cannot close connection,please check:", err)
+				}
+			}(dataNodeInstance)
 
 			request := dn.GetReq{
 				BlockId: pbMetaData.BlockId,
@@ -149,4 +154,45 @@ func Get(nameNodeConn *grpc.ClientConn, sourceFilePath string) (fileContents str
 	// 所有block被拿到, 返回文件成功get到
 	getStatus = true
 	return
+}
+
+func Delete(nameNodeConn *grpc.ClientConn, filename string) bool {
+	resp, err := namenode_pb.NewNameNodeServiceClient(nameNodeConn).DeleteData(context.Background(), &namenode_pb.DeleteDataReq{
+		FileName: filename,
+	})
+	if err != nil {
+		log.Println("调用NameNode的Delete请求发生错误:", err)
+	}
+	log.Println("调用NameNode的Delete请求读取数据的信息为：", resp.NameNodeMetaDataList)
+	deleteStatus := false
+
+	//datanode开始删除数据
+	for _, mdi := range resp.NameNodeMetaDataList {
+		for _, dni := range mdi.BlockAddresses {
+			conn, err := grpc.Dial(dni.Host+":"+dni.ServicePort, grpc.WithTransportCredentials(insecure.NewCredentials()))
+			if err != nil {
+				log.Println("cannot connect datanode:", dni.Host, ":", dni.ServicePort)
+				return false
+			}
+			defer func(conn *grpc.ClientConn) {
+				err := conn.Close()
+				if err != nil {
+					log.Println("cannot close connection,please check:", err)
+				}
+			}(conn)
+			deleteResp, err := dn.NewDataNodeClient(conn).Delete(context.Background(), &dn.DeleteReq{
+				BlockId: mdi.BlockId,
+			})
+			if err != nil {
+				log.Println("cannot dial method from datanode:", dni.Host, ":", dni.ServicePort)
+				return false
+			}
+			if deleteResp.Success {
+				deleteStatus = true
+			} else {
+				deleteStatus = false
+			}
+		}
+	}
+	return deleteStatus
 }

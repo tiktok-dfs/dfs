@@ -22,6 +22,13 @@ func GetHandler(nameNodeAddress string, sourceFilePath string) (string, bool) {
 	return client.Get(rpcClient, sourceFilePath)
 }
 
+func DeleteHandler(nameNodeAddress string, sourceFilePath string) bool {
+	rpcClient, err := initializeClientUtil(nameNodeAddress)
+	util.Check(err)
+	defer rpcClient.Close()
+	return client.Delete(rpcClient, sourceFilePath)
+}
+
 func initializeClientUtil(nameNodeAddress string) (*grpc.ClientConn, error) {
 	host, port, err := net.SplitHostPort(nameNodeAddress)
 	util.Check(err)

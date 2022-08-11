@@ -93,3 +93,17 @@ func (s *Server) Get(c context.Context, req *dn.GetReq) (*dn.GetResp, error) {
 	}
 	return &dn.GetResp{Data: string(dataBytes)}, nil
 }
+
+func (s *Server) Delete(c context.Context, req *dn.DeleteReq) (*dn.DeleteResp, error) {
+	_, err := os.Open(s.DataDirectory + req.BlockId)
+	if err != nil {
+		log.Println("文件已经被删掉")
+		return &dn.DeleteResp{Success: true}, nil
+	}
+	err = os.Remove(s.DataDirectory + req.BlockId)
+	if err != nil {
+		return &dn.DeleteResp{}, err
+	}
+	log.Println("成功删除文件")
+	return &dn.DeleteResp{Success: true}, nil
+}

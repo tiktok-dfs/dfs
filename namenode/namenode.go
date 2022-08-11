@@ -125,10 +125,10 @@ func (nn *Service) ReadData(ctx context.Context, req *namenode_pb.ReadRequst) (*
 	for _, block := range fileBlocks {
 		var blockAddresses []util.DataNodeInstance
 
-		log.Println("写入blockId为：", block)
+		log.Println("读取到的blockId为：", block)
 		targetDataNodeIds := nn.BlockToDataNodeIds[block]
 		for _, dataNodeId := range targetDataNodeIds {
-			log.Println("写入blockAddresses为：", blockAddresses)
+			log.Println("读取到的blockAddresses为：", blockAddresses)
 			blockAddresses = append(blockAddresses, nn.IdToDataNodes[dataNodeId])
 		}
 
@@ -295,4 +295,29 @@ func (nameNode *Service) ReDistributeData(request *ReDistributeDataRequest, repl
 	}
 
 	return nil
+}
+
+func (s *Service) DeleteData(c context.Context, req *namenode_pb.DeleteDataReq) (*namenode_pb.DeleteDataResp, error) {
+	var res namenode_pb.DeleteDataResp
+
+	_, ok := s.FileNameToBlocks[req.FileName]
+	if !ok {
+		return nil, e.FileDoesNotExist
+	}
+	fileBlocks := s.FileNameToBlocks[req.FileName]
+
+	for _, block := range fileBlocks {
+		var blockAddresses []util.DataNodeInstance
+
+		log.Println("读取到的blockId为：", block)
+		targetDataNodeIds := s.BlockToDataNodeIds[block]
+		for _, dataNodeId := range targetDataNodeIds {
+			log.Println("读取到的blockAddresses为：", blockAddresses)
+			blockAddresses = append(blockAddresses, s.IdToDataNodes[dataNodeId])
+		}
+
+		res.NameNodeMetaDataList = append(res.NameNodeMetaDataList, NameNodeMetaData2PB(NameNodeMetaData{BlockId: block, BlockAddresses: blockAddresses}))
+	}
+
+	return &res, nil
 }
