@@ -119,3 +119,39 @@ func (s *Server) Stat(c context.Context, req *dn.StatReq) (*dn.StatResp, error) 
 		ModTime: stat.ModTime().Unix(),
 	}, nil
 }
+
+// List 索引目录下的所有文件和文件夹
+func (s *Server) List(c context.Context, req *dn.ListReq) (*dn.ListResp, error) {
+	files, err := os.ReadDir(req.Path)
+	if err != nil {
+		log.Println("cannot list the file:", err)
+		return &dn.ListResp{}, err
+	}
+	var blockIds []string
+	for _, file := range files {
+		blockIds = append(blockIds, file.Name())
+	}
+	return &dn.ListResp{FileList: blockIds}, nil
+}
+
+// Mkdir 创建目录
+func (s *Server) Mkdir(c context.Context, req *dn.MkdirReq) (*dn.MkdirResp, error) {
+	err := os.Mkdir(req.Path, 0755)
+	if err != nil {
+		log.Println("cannot mkdir the file:", err)
+		return &dn.MkdirResp{}, err
+	}
+	log.Println("成功创建目录")
+	return &dn.MkdirResp{Success: true}, nil
+}
+
+// Rename 重命名文件
+func (s *Server) Rename(c context.Context, req *dn.RenameReq) (*dn.RenameResp, error) {
+	err := os.Rename(req.OldPath, req.NewPath)
+	if err != nil {
+		log.Println("cannot rename the file:", err)
+		return &dn.RenameResp{}, err
+	}
+	log.Println("成功重命名")
+	return &dn.RenameResp{Success: true}, nil
+}
