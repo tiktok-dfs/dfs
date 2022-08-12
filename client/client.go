@@ -23,6 +23,7 @@ type StatResp struct {
 func Put(nameNodeConn *grpc.ClientConn, sourceFilePath string, destFilePath string) bool {
 	nameNodeInstance := namenode_pb.NewNameNodeServiceClient(nameNodeConn)
 
+	// -------------- Step1:获取文件大小 ---------------
 	fileSizeHandler, err := os.Stat(sourceFilePath)
 	util.Check(err)
 
@@ -34,6 +35,7 @@ func Put(nameNodeConn *grpc.ClientConn, sourceFilePath string, destFilePath stri
 
 	namenodeWriteRequest := &namenode_pb.WriteRequest{FileName: fileName, FileSize: fileSize}
 
+	// ---------------- Step2: 从 namenode 获取初始化的元数据 ----------------
 	// namenode 的 writeData并不是真的写入, 返回的reply包含每一个文件的block应该被写入的data node 的地址
 	writeResponse, err := nameNodeInstance.WriteData(context.Background(), namenodeWriteRequest)
 	util.Check(err)
@@ -49,25 +51,28 @@ func Put(nameNodeConn *grpc.ClientConn, sourceFilePath string, destFilePath stri
 
 	blockSize = blockSizeResponse.BlockSize
 
+	// ---------------- Step3: 开始读取文件，分片后发送给 datanode ----------------
 	fileHandler, err := os.Open(sourceFilePath)
 	util.Check(err)
 
 	// buffer 每次只读全局设定的block size 或 更少的数据
-	dataStagingBytes := make([]byte, blockSize)
+	dataStagingBytes := make([]byte, blockSize) // 用于保存当前批次的数据
 	putStatus := false
+
+	// 被切成多少个 block 就有多少组 matdata，然后每个 matdata 记录这批相同的 block 被分配给哪些 datanode
 	for _, pbMetaData := range writeResponse.NameNodeMetaDataList {
-		metaData := converter.Pb2NameNodeMetaData(pbMetaData)
+		metaData := converter.Pb2NameNodeMetaData(pbMetaData) // 将元数据从 pb 格式解析到结构体中
 
 		// n代表着实际读到的byte数
 		n, err := fileHandler.Read(dataStagingBytes)
 		util.Check(err)
-		dataStagingBytes = dataStagingBytes[:n]
+		dataStagingBytes = dataStagingBytes[:n] // 截取实际读到的数据（最后一次可能不会正好覆盖完整个 dataStagingBytes）
 
 		blockId := metaData.BlockId
 		blockAddresses := metaData.BlockAddresses
 
-		startingDataNode := blockAddresses[0]
-		remainingDataNodes := blockAddresses[1:]
+		startingDataNode := blockAddresses[0]    // 头 datanode
+		remainingDataNodes := blockAddresses[1:] // 备份的 datanode，由头节点往后复制，无需客户端亲自传递数据
 
 		var datanodes []*dn.DataNodeInstance
 		for _, dni := range remainingDataNodes {
@@ -84,8 +89,8 @@ func Put(nameNodeConn *grpc.ClientConn, sourceFilePath string, destFilePath stri
 		request := dn.PutReq{
 			Path:             sourceFilePath,
 			BlockId:          blockId,
-			Data:             string(dataStagingBytes),
-			ReplicationNodes: datanodes,
+			Data:             string(dataStagingBytes), // 负载的数据分片
+			ReplicationNodes: datanodes,                // 需要往后传递，用于备份的 datanode 列表
 		}
 		// 写入数据
 		log.Println("已经写入的BLockId为：", blockId)
