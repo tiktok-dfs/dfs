@@ -106,4 +106,5 @@ message ListReq {
 
 message ListResp {
   repeated string FileList = 1;
+  repeated string DirList = 2;
 }

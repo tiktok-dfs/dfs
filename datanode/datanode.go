@@ -127,11 +127,16 @@ func (s *Server) List(c context.Context, req *dn.ListReq) (*dn.ListResp, error) 
 		log.Println("cannot list the file:", err)
 		return &dn.ListResp{}, err
 	}
-	var blockIds []string
+	var blocks, dirs []string
 	for _, file := range files {
-		blockIds = append(blockIds, file.Name())
+		// 判断是否为文件夹
+		if file.IsDir() {
+			dirs = append(dirs, file.Name())
+		} else {
+			blocks = append(blocks, file.Name())
+		}
 	}
-	return &dn.ListResp{FileList: blockIds}, nil
+	return &dn.ListResp{FileList: blocks, DirList: dirs}, nil
 }
 
 // Mkdir 创建目录
