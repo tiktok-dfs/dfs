@@ -4,6 +4,9 @@ import (
 	"bufio"
 	"context"
 	"errors"
+	"github.com/shirou/gopsutil/cpu"
+	"github.com/shirou/gopsutil/disk"
+	"github.com/shirou/gopsutil/mem"
 	"go-fs/pkg/util"
 	dn "go-fs/proto/datanode"
 	"google.golang.org/grpc"
@@ -11,6 +14,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"time"
 )
 
 type Server struct {
@@ -159,4 +163,40 @@ func (s *Server) Rename(c context.Context, req *dn.RenameReq) (*dn.RenameResp, e
 	}
 	log.Println("成功重命名")
 	return &dn.RenameResp{Success: true}, nil
+}
+
+// GetCpuPercent 以下三个方法可以用于给NameNode决定选取哪一个datanode作为写入节点，已测试过，和linux命令行输出的结果相差无几
+// GetCpuPercent 获取CPU使用率
+func GetCpuPercent() (float64, error) {
+	percent, err := cpu.Percent(time.Second, false)
+	if err != nil {
+		log.Println("Cannot Read CPU Message:", err)
+		return 0, err
+	}
+	return percent[0], nil
+}
+
+// GetMemPercent 获取内存使用率
+func GetMemPercent() (float64, error) {
+	memInfo, err := mem.VirtualMemory()
+	if err != nil {
+		log.Println("Cannot Get Memory Percent:", err)
+		return 0, err
+	}
+	return memInfo.UsedPercent, nil
+}
+
+// GetDiskPercent 获取当前程序所在目录的硬盘使用率
+func GetDiskPercent() (float64, error) {
+	pwd, err := os.Getwd()
+	if err != nil {
+		log.Println("cannot get pwd:", err)
+		return 0, err
+	}
+	usage, err := disk.Usage(pwd)
+	if err != nil {
+		log.Println("Cannot Usage Disk Usage:", err)
+		return 0, err
+	}
+	return usage.UsedPercent, nil
 }
