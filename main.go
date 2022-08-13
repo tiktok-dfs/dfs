@@ -11,6 +11,10 @@ import (
 )
 
 func main() {
+	WorkByCli()
+}
+
+func WorkByCli() {
 	dataNodeCommand := flag.NewFlagSet("datanode", flag.ExitOnError)
 	nameNodeCommand := flag.NewFlagSet("namenode", flag.ExitOnError)
 	clientCommand := flag.NewFlagSet("client", flag.ExitOnError)
