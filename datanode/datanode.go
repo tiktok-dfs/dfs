@@ -36,7 +36,24 @@ func (s *Server) Ping(c context.Context, req *dn.PingReq) (*dn.PingResp, error) 
 func (s *Server) HeartBeat(c context.Context, req *dn.HeartBeatReq) (*dn.HeartBeatResp, error) {
 	if req.Request {
 		log.Println("receive heart beat success")
-		return &dn.HeartBeatResp{Success: true}, nil
+		diskPercent, err := GetDiskPercent()
+		if err != nil {
+			log.Println("cannot GetDiskPercent:", err)
+		}
+		memPercent, err := GetMemPercent()
+		if err != nil {
+			log.Println("cannot GetMemPercent:", err)
+		}
+		cpuPercent, err := GetCpuPercent()
+		if err != nil {
+			log.Println("cannot GetCpuPercent:", err)
+		}
+		return &dn.HeartBeatResp{
+			Success:     true,
+			DiskPercent: float32(diskPercent),
+			MemPercent:  float32(memPercent),
+			CpuPercent:  float32(cpuPercent),
+		}, nil
 	}
 	return nil, errors.New("HeartBeatError")
 }

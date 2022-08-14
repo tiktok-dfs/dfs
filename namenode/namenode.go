@@ -10,7 +10,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"log"
 	"math"
-	"math/rand"
+	"sort"
 	"strings"
 
 	"github.com/google/uuid"
@@ -19,15 +19,6 @@ import (
 type NameNodeMetaData struct {
 	BlockId        string
 	BlockAddresses []util.DataNodeInstance
-}
-
-type NameNodeReadRequest struct {
-	FileName string
-}
-
-type NameNodeWriteRequest struct {
-	FileName string
-	FileSize uint64
 }
 
 type ReDistributeDataRequest struct {
@@ -48,6 +39,13 @@ type Service struct {
 	IdToDataNodes      map[uint64]util.DataNodeInstance
 	FileNameToBlocks   map[string][]string
 	BlockToDataNodeIds map[string][]uint64
+	DataNodeMessageMap map[string]DataNodeMessage
+}
+
+type DataNodeMessage struct {
+	DiskPercent float32
+	MemPercent  float32
+	CpuPercent  float32
 }
 
 func NewService(blockSize uint64, replicationFactor uint64, serverPort uint16) *Service {
@@ -61,17 +59,38 @@ func NewService(blockSize uint64, replicationFactor uint64, serverPort uint16) *
 	}
 }
 
-// selectRandomDataNodes
-func selectRandomDataNodes(availableDataNodes []uint64, replicationFactor uint64) (randomSeletctedDataNodes []uint64) {
-	//已经被选的 data1 node, 不应该在被选择
+// SelectRandomDataNodes 选择datanode节点
+func (nameNode *Service) SelectRandomDataNodes(availableDataNodes []uint64, replicationFactor uint64) (randomSeletctedDataNodes []uint64) {
+	//已经被选的 data node, 不应该在被选择
 	dataNodePresentMap := make(map[uint64]struct{})
-	//随机选择备份的data node
+
+	//根据CPU、Disk、Mem情况选择备份的data node
+	chooseDataNode := make(map[float32][]uint64)
+	for _, i := range availableDataNodes {
+		addr := nameNode.IdToDataNodes[i].Host + ":" + nameNode.IdToDataNodes[i].ServicePort
+		message := nameNode.DataNodeMessageMap[addr]
+		//计算该datanode的加权值
+		calculate := message.DiskPercent*0.4 + message.MemPercent*0.4 + message.CpuPercent*0.2
+		//存入临时map
+		chooseDataNode[calculate] = append(chooseDataNode[calculate], i)
+	}
+
+	//将map的key存入切片进行排序
+	var list []float64
+	for k, _ := range chooseDataNode {
+		list = append(list, float64(k))
+	}
+	sort.Float64s(list)
+
 	for i := uint64(0); i < replicationFactor; {
-		chosenItem := availableDataNodes[rand.Intn(len(availableDataNodes))]
-		if _, ok := dataNodePresentMap[chosenItem]; !ok {
-			dataNodePresentMap[chosenItem] = struct{}{}
-			randomSeletctedDataNodes = append(randomSeletctedDataNodes, chosenItem)
-			i++
+		chosenKeys := float32(list[0])
+		list = list[1:]
+		for _, v := range chooseDataNode[chosenKeys] {
+			if _, ok := dataNodePresentMap[v]; !ok {
+				dataNodePresentMap[v] = struct{}{}
+				randomSeletctedDataNodes = append(randomSeletctedDataNodes, v)
+				i++
+			}
 		}
 	}
 	return
@@ -197,7 +216,7 @@ func (nameNode *Service) allocateBlocks(fileName string, numberOfBlocks uint64) 
 
 func (nameNode *Service) assignDataNodes(blockId string, dataNodesAvailable []uint64, replicationFactor uint64) []uint64 {
 	// 随机选择block备份的data nodes
-	targetDataNodeIds := selectRandomDataNodes(dataNodesAvailable, replicationFactor)
+	targetDataNodeIds := nameNode.SelectRandomDataNodes(dataNodesAvailable, replicationFactor)
 	nameNode.BlockToDataNodeIds[blockId] = targetDataNodeIds
 	return targetDataNodeIds
 }
