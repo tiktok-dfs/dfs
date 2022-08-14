@@ -43,9 +43,11 @@ type Service struct {
 }
 
 type DataNodeMessage struct {
-	DiskPercent float32
-	MemPercent  float32
-	CpuPercent  float32
+	UsedDisk   uint64
+	UsedMem    uint64
+	CpuPercent float32
+	TotalMem   uint64
+	TotalDisk  uint64
 }
 
 func NewService(blockSize uint64, replicationFactor uint64, serverPort uint16) *Service {
@@ -56,6 +58,7 @@ func NewService(blockSize uint64, replicationFactor uint64, serverPort uint16) *
 		FileNameToBlocks:   make(map[string][]string),
 		IdToDataNodes:      make(map[uint64]util.DataNodeInstance),
 		BlockToDataNodeIds: make(map[string][]uint64),
+		DataNodeMessageMap: make(map[string]DataNodeMessage),
 	}
 }
 
@@ -69,8 +72,12 @@ func (nameNode *Service) SelectRandomDataNodes(availableDataNodes []uint64, repl
 	for _, i := range availableDataNodes {
 		addr := nameNode.IdToDataNodes[i].Host + ":" + nameNode.IdToDataNodes[i].ServicePort
 		message := nameNode.DataNodeMessageMap[addr]
+		//计算磁盘占用率
+		diskPercent := message.UsedDisk / message.TotalDisk
+		//计算内存占用率
+		memPercent := message.UsedMem / message.TotalMem
 		//计算该datanode的加权值
-		calculate := message.DiskPercent*0.4 + message.MemPercent*0.4 + message.CpuPercent*0.2
+		calculate := float32(diskPercent)*0.4 + float32(memPercent)*0.4 + message.CpuPercent*0.2
 		//存入临时map
 		chooseDataNode[calculate] = append(chooseDataNode[calculate], i)
 	}
@@ -90,6 +97,18 @@ func (nameNode *Service) SelectRandomDataNodes(availableDataNodes []uint64, repl
 				dataNodePresentMap[v] = struct{}{}
 				randomSeletctedDataNodes = append(randomSeletctedDataNodes, v)
 				i++
+				//选定节点后还要估算增量去更新map,目前以指定的BlockSize来估算的，如果要精确估算，计算量会增大
+				instance := nameNode.IdToDataNodes[v]
+				message := nameNode.DataNodeMessageMap[instance.Host+":"+instance.ServicePort]
+				log.Println("估算前datanode的信息：", message)
+				nameNode.DataNodeMessageMap[instance.Host+":"+instance.ServicePort] = DataNodeMessage{
+					UsedDisk:   message.UsedDisk + nameNode.BlockSize,
+					UsedMem:    message.UsedMem + nameNode.BlockSize,
+					CpuPercent: message.CpuPercent,
+					TotalMem:   message.TotalMem,
+					TotalDisk:  message.TotalDisk,
+				}
+				log.Println("估算后datanode的信息:", nameNode.DataNodeMessageMap[instance.Host+":"+instance.ServicePort])
 			}
 		}
 	}

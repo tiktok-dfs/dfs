@@ -148,9 +148,11 @@ func heartbeatToDataNodes(listOfDataNodes []string, nameNode *namenode.Service) 
 
 			//心跳成功，更新map
 			nameNode.DataNodeMessageMap[hostPort] = namenode.DataNodeMessage{
-				DiskPercent: response.DiskPercent,
-				MemPercent:  response.MemPercent,
-				CpuPercent:  response.CpuPercent,
+				UsedDisk:   response.UsedDisk,
+				UsedMem:    response.UsedMem,
+				CpuPercent: response.CpuPercent,
+				TotalMem:   response.TotalMem,
+				TotalDisk:  response.TotalDisk,
 			}
 		}
 	}
