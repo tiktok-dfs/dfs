@@ -145,6 +145,15 @@ func heartbeatToDataNodes(listOfDataNodes []string, nameNode *namenode.Service) 
 				delete(nameNode.IdToDataNodes, uint64(i))
 				listOfDataNodes = removeElementFromSlice(listOfDataNodes, i)
 			}
+
+			//心跳成功，更新map
+			nameNode.DataNodeMessageMap[hostPort] = namenode.DataNodeMessage{
+				UsedDisk:   response.UsedDisk,
+				UsedMem:    response.UsedMem,
+				CpuPercent: response.CpuPercent,
+				TotalMem:   response.TotalMem,
+				TotalDisk:  response.TotalDisk,
+			}
 		}
 	}
 }

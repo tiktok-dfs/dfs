@@ -10,7 +10,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"log"
 	"math"
-	"math/rand"
+	"sort"
 	"strings"
 
 	"github.com/google/uuid"
@@ -19,15 +19,6 @@ import (
 type NameNodeMetaData struct {
 	BlockId        string
 	BlockAddresses []util.DataNodeInstance
-}
-
-type NameNodeReadRequest struct {
-	FileName string
-}
-
-type NameNodeWriteRequest struct {
-	FileName string
-	FileSize uint64
 }
 
 type ReDistributeDataRequest struct {
@@ -48,6 +39,15 @@ type Service struct {
 	IdToDataNodes      map[uint64]util.DataNodeInstance
 	FileNameToBlocks   map[string][]string
 	BlockToDataNodeIds map[string][]uint64
+	DataNodeMessageMap map[string]DataNodeMessage
+}
+
+type DataNodeMessage struct {
+	UsedDisk   uint64
+	UsedMem    uint64
+	CpuPercent float32
+	TotalMem   uint64
+	TotalDisk  uint64
 }
 
 func NewService(blockSize uint64, replicationFactor uint64, serverPort uint16) *Service {
@@ -58,20 +58,58 @@ func NewService(blockSize uint64, replicationFactor uint64, serverPort uint16) *
 		FileNameToBlocks:   make(map[string][]string),
 		IdToDataNodes:      make(map[uint64]util.DataNodeInstance),
 		BlockToDataNodeIds: make(map[string][]uint64),
+		DataNodeMessageMap: make(map[string]DataNodeMessage),
 	}
 }
 
-// selectRandomDataNodes
-func selectRandomDataNodes(availableDataNodes []uint64, replicationFactor uint64) (randomSeletctedDataNodes []uint64) {
-	//已经被选的 data1 node, 不应该在被选择
+// SelectRandomDataNodes 选择datanode节点
+func (nameNode *Service) SelectRandomDataNodes(availableDataNodes []uint64, replicationFactor uint64) (randomSeletctedDataNodes []uint64) {
+	//已经被选的 data node, 不应该在被选择
 	dataNodePresentMap := make(map[uint64]struct{})
-	//随机选择备份的data node
+
+	//根据CPU、Disk、Mem情况选择备份的data node
+	chooseDataNode := make(map[float32][]uint64)
+	for _, i := range availableDataNodes {
+		addr := nameNode.IdToDataNodes[i].Host + ":" + nameNode.IdToDataNodes[i].ServicePort
+		message := nameNode.DataNodeMessageMap[addr]
+		//计算磁盘占用率
+		diskPercent := message.UsedDisk / message.TotalDisk
+		//计算内存占用率
+		memPercent := message.UsedMem / message.TotalMem
+		//计算该datanode的加权值
+		calculate := float32(diskPercent)*0.4 + float32(memPercent)*0.4 + message.CpuPercent*0.2
+		//存入临时map
+		chooseDataNode[calculate] = append(chooseDataNode[calculate], i)
+	}
+
+	//将map的key存入切片进行排序
+	var list []float64
+	for k, _ := range chooseDataNode {
+		list = append(list, float64(k))
+	}
+	sort.Float64s(list)
+
 	for i := uint64(0); i < replicationFactor; {
-		chosenItem := availableDataNodes[rand.Intn(len(availableDataNodes))]
-		if _, ok := dataNodePresentMap[chosenItem]; !ok {
-			dataNodePresentMap[chosenItem] = struct{}{}
-			randomSeletctedDataNodes = append(randomSeletctedDataNodes, chosenItem)
-			i++
+		chosenKeys := float32(list[0])
+		list = list[1:]
+		for _, v := range chooseDataNode[chosenKeys] {
+			if _, ok := dataNodePresentMap[v]; !ok {
+				dataNodePresentMap[v] = struct{}{}
+				randomSeletctedDataNodes = append(randomSeletctedDataNodes, v)
+				i++
+				//选定节点后还要估算增量去更新map,目前以指定的BlockSize来估算的，如果要精确估算，计算量会增大
+				instance := nameNode.IdToDataNodes[v]
+				message := nameNode.DataNodeMessageMap[instance.Host+":"+instance.ServicePort]
+				log.Println("估算前datanode的信息：", message)
+				nameNode.DataNodeMessageMap[instance.Host+":"+instance.ServicePort] = DataNodeMessage{
+					UsedDisk:   message.UsedDisk + nameNode.BlockSize,
+					UsedMem:    message.UsedMem + nameNode.BlockSize,
+					CpuPercent: message.CpuPercent,
+					TotalMem:   message.TotalMem,
+					TotalDisk:  message.TotalDisk,
+				}
+				log.Println("估算后datanode的信息:", nameNode.DataNodeMessageMap[instance.Host+":"+instance.ServicePort])
+			}
 		}
 	}
 	return
@@ -197,7 +235,7 @@ func (nameNode *Service) allocateBlocks(fileName string, numberOfBlocks uint64) 
 
 func (nameNode *Service) assignDataNodes(blockId string, dataNodesAvailable []uint64, replicationFactor uint64) []uint64 {
 	// 随机选择block备份的data nodes
-	targetDataNodeIds := selectRandomDataNodes(dataNodesAvailable, replicationFactor)
+	targetDataNodeIds := nameNode.SelectRandomDataNodes(dataNodesAvailable, replicationFactor)
 	nameNode.BlockToDataNodeIds[blockId] = targetDataNodeIds
 	return targetDataNodeIds
 }
