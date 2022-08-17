@@ -9,6 +9,33 @@ service NameNodeService {
   rpc WriteData(WriteRequest) returns (WriteResponse);
   rpc DeleteData(DeleteDataReq) returns (DeleteDataResp);
   rpc StatData(StatDataReq) returns (StatDataResp);
+  rpc GetDataNodes(GetDataNodesReq) returns (GetDataNodesResp);
+  rpc IsDir(IsDirReq) returns (IsDirResp);
+  rpc Rename(RenameReq) returns (RenameResp);
+}
+
+message RenameReq {
+  string OldFileName = 1;
+  string NewFileName = 2;
+}
+
+message RenameResp {
+  bool Success = 1;
+}
+
+message IsDirReq {
+  string Filename = 1;
+}
+
+message IsDirResp {
+  bool Ok = 1;
+}
+
+message GetDataNodesReq {
+}
+
+message GetDataNodesResp {
+  repeated string DataNodeList = 1;
 }
 
 message StatDataReq {

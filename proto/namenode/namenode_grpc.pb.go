@@ -27,6 +27,9 @@ type NameNodeServiceClient interface {
 	WriteData(ctx context.Context, in *WriteRequest, opts ...grpc.CallOption) (*WriteResponse, error)
 	DeleteData(ctx context.Context, in *DeleteDataReq, opts ...grpc.CallOption) (*DeleteDataResp, error)
 	StatData(ctx context.Context, in *StatDataReq, opts ...grpc.CallOption) (*StatDataResp, error)
+	GetDataNodes(ctx context.Context, in *GetDataNodesReq, opts ...grpc.CallOption) (*GetDataNodesResp, error)
+	IsDir(ctx context.Context, in *IsDirReq, opts ...grpc.CallOption) (*IsDirResp, error)
+	Rename(ctx context.Context, in *RenameReq, opts ...grpc.CallOption) (*RenameResp, error)
 }
 
 type nameNodeServiceClient struct {
@@ -82,6 +85,33 @@ func (c *nameNodeServiceClient) StatData(ctx context.Context, in *StatDataReq, o
 	return out, nil
 }
 
+func (c *nameNodeServiceClient) GetDataNodes(ctx context.Context, in *GetDataNodesReq, opts ...grpc.CallOption) (*GetDataNodesResp, error) {
+	out := new(GetDataNodesResp)
+	err := c.cc.Invoke(ctx, "/namenode_.NameNodeService/GetDataNodes", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *nameNodeServiceClient) IsDir(ctx context.Context, in *IsDirReq, opts ...grpc.CallOption) (*IsDirResp, error) {
+	out := new(IsDirResp)
+	err := c.cc.Invoke(ctx, "/namenode_.NameNodeService/IsDir", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *nameNodeServiceClient) Rename(ctx context.Context, in *RenameReq, opts ...grpc.CallOption) (*RenameResp, error) {
+	out := new(RenameResp)
+	err := c.cc.Invoke(ctx, "/namenode_.NameNodeService/Rename", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // NameNodeServiceServer is the server API for NameNodeService service.
 // All implementations must embed UnimplementedNameNodeServiceServer
 // for forward compatibility
@@ -91,6 +121,9 @@ type NameNodeServiceServer interface {
 	WriteData(context.Context, *WriteRequest) (*WriteResponse, error)
 	DeleteData(context.Context, *DeleteDataReq) (*DeleteDataResp, error)
 	StatData(context.Context, *StatDataReq) (*StatDataResp, error)
+	GetDataNodes(context.Context, *GetDataNodesReq) (*GetDataNodesResp, error)
+	IsDir(context.Context, *IsDirReq) (*IsDirResp, error)
+	Rename(context.Context, *RenameReq) (*RenameResp, error)
 	mustEmbedUnimplementedNameNodeServiceServer()
 }
 
@@ -112,6 +145,15 @@ func (UnimplementedNameNodeServiceServer) DeleteData(context.Context, *DeleteDat
 }
 func (UnimplementedNameNodeServiceServer) StatData(context.Context, *StatDataReq) (*StatDataResp, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method StatData not implemented")
+}
+func (UnimplementedNameNodeServiceServer) GetDataNodes(context.Context, *GetDataNodesReq) (*GetDataNodesResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetDataNodes not implemented")
+}
+func (UnimplementedNameNodeServiceServer) IsDir(context.Context, *IsDirReq) (*IsDirResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method IsDir not implemented")
+}
+func (UnimplementedNameNodeServiceServer) Rename(context.Context, *RenameReq) (*RenameResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Rename not implemented")
 }
 func (UnimplementedNameNodeServiceServer) mustEmbedUnimplementedNameNodeServiceServer() {}
 
@@ -216,6 +258,60 @@ func _NameNodeService_StatData_Handler(srv interface{}, ctx context.Context, dec
 	return interceptor(ctx, in, info, handler)
 }
 
+func _NameNodeService_GetDataNodes_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetDataNodesReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NameNodeServiceServer).GetDataNodes(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/namenode_.NameNodeService/GetDataNodes",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NameNodeServiceServer).GetDataNodes(ctx, req.(*GetDataNodesReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _NameNodeService_IsDir_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(IsDirReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NameNodeServiceServer).IsDir(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/namenode_.NameNodeService/IsDir",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NameNodeServiceServer).IsDir(ctx, req.(*IsDirReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _NameNodeService_Rename_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RenameReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NameNodeServiceServer).Rename(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/namenode_.NameNodeService/Rename",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NameNodeServiceServer).Rename(ctx, req.(*RenameReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // NameNodeService_ServiceDesc is the grpc.ServiceDesc for NameNodeService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -242,6 +338,18 @@ var NameNodeService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "StatData",
 			Handler:    _NameNodeService_StatData_Handler,
+		},
+		{
+			MethodName: "GetDataNodes",
+			Handler:    _NameNodeService_GetDataNodes_Handler,
+		},
+		{
+			MethodName: "IsDir",
+			Handler:    _NameNodeService_IsDir_Handler,
+		},
+		{
+			MethodName: "Rename",
+			Handler:    _NameNodeService_Rename_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

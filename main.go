@@ -31,6 +31,8 @@ func WorkByCli() {
 	clientOperationPtr := clientCommand.String("operation", "", "Operation to perform")
 	clientSourcePathPtr := clientCommand.String("source-path", "", "Source path of the file")
 	clientFilenamePtr := clientCommand.String("filename", "", "File name")
+	clientOldFilenamePtr := clientCommand.String("old", "", "Old File Name")
+	clientNewFilenamePtr := clientCommand.String("new", "", "New File Name")
 
 	if len(os.Args) < 2 {
 		log.Println("sub-command is required")
@@ -76,6 +78,15 @@ func WorkByCli() {
 				log.Println("Stat Error:", err)
 			}
 			log.Println("Stat Data Message:\n", "FileName:", *clientFilenamePtr, "FileSize:", resp.FileSize, "FileModTime:", resp.ModTime)
+
+		} else if *clientOperationPtr == "mkdir" {
+			status := client.MkdirHandler(*clientNameNodePortPtr, *clientFilenamePtr)
+			log.Println("Delete Status:", status)
+
+		} else if *clientOperationPtr == "mv" {
+			status := client.RenameHandle(*clientNameNodePortPtr, *clientOldFilenamePtr, *clientNewFilenamePtr)
+			log.Println("mv Status:", status)
+
 		}
 	}
 }

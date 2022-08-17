@@ -3,6 +3,7 @@ package namenode
 import (
 	"context"
 	"go-fs/pkg/e"
+	"go-fs/pkg/tree"
 	"go-fs/pkg/util"
 	dn "go-fs/proto/datanode"
 	namenode_pb "go-fs/proto/namenode"
@@ -40,6 +41,7 @@ type Service struct {
 	FileNameToBlocks   map[string][]string
 	BlockToDataNodeIds map[string][]uint64
 	DataNodeMessageMap map[string]DataNodeMessage
+	DirTree            *tree.DirTree
 }
 
 type DataNodeMessage struct {
@@ -59,7 +61,16 @@ func NewService(blockSize uint64, replicationFactor uint64, serverPort uint16) *
 		IdToDataNodes:      make(map[uint64]util.DataNodeInstance),
 		BlockToDataNodeIds: make(map[string][]uint64),
 		DataNodeMessageMap: make(map[string]DataNodeMessage),
+		DirTree:            initDirTree(),
 	}
+}
+
+func initDirTree() *tree.DirTree {
+	root := &tree.DirTreeNode{
+		Name:     "/",
+		Children: nil,
+	}
+	return &tree.DirTree{Root: root}
 }
 
 // SelectRandomDataNodes 选择datanode节点
@@ -181,6 +192,8 @@ func (nn *Service) WriteData(ctx context.Context, req *namenode_pb.WriteRequest)
 	var res namenode_pb.WriteResponse
 
 	nn.FileNameToBlocks[req.FileName] = []string{}
+
+	nn.DirTree.Insert(req.FileName)
 
 	numberOfBlocksToAllocate := uint64(math.Ceil(float64(req.FileSize) / float64(nn.BlockSize)))
 	log.Println("分配块的数量:", numberOfBlocksToAllocate)
@@ -384,4 +397,34 @@ func (s *Service) StatData(c context.Context, req *namenode_pb.StatDataReq) (*na
 	}
 
 	return &res, nil
+}
+
+func (s *Service) GetDataNodes(c context.Context, req *namenode_pb.GetDataNodesReq) (*namenode_pb.GetDataNodesResp, error) {
+	var list []string
+	for _, dni := range s.IdToDataNodes {
+		list = append(list, dni.Host+":"+dni.ServicePort)
+	}
+	return &namenode_pb.GetDataNodesResp{
+		DataNodeList: list,
+	}, nil
+}
+
+func (s *Service) IsDir(c context.Context, req *namenode_pb.IsDirReq) (*namenode_pb.IsDirResp, error) {
+	dir := s.DirTree.FindSubDir("/" + req.Filename)
+	if len(dir) == 0 {
+		//表明没有子目录，为文件形式
+		//写入文件的时候已经是目录+文件名的格式了，应该不存在空文件夹的情况
+		return &namenode_pb.IsDirResp{Ok: false}, nil
+	} else {
+		return &namenode_pb.IsDirResp{Ok: true}, nil
+	}
+}
+
+func (s *Service) Rename(c context.Context, req *namenode_pb.RenameReq) (*namenode_pb.RenameResp, error) {
+	list := s.FileNameToBlocks[req.OldFileName]
+	s.FileNameToBlocks[req.NewFileName] = list
+	delete(s.FileNameToBlocks, req.OldFileName)
+	return &namenode_pb.RenameResp{
+		Success: true,
+	}, nil
 }
