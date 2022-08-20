@@ -14,6 +14,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -173,7 +174,12 @@ func (s *Server) List(c context.Context, req *dn.ListReq) (*dn.ListResp, error) 
 
 // Mkdir 创建目录
 func (s *Server) Mkdir(c context.Context, req *dn.MkdirReq) (*dn.MkdirResp, error) {
-	err := os.Mkdir(req.Path, 0755)
+	//判断用户是否携带/
+	path := req.Path
+	if strings.HasPrefix(path, "/") {
+		path = strings.TrimPrefix(path, "/")
+	}
+	err := os.MkdirAll(s.DataDirectory+path, 0755)
 	if err != nil {
 		log.Println("cannot mkdir the file:", err)
 		return &dn.MkdirResp{}, err
@@ -184,7 +190,7 @@ func (s *Server) Mkdir(c context.Context, req *dn.MkdirReq) (*dn.MkdirResp, erro
 
 // Rename 重命名文件
 func (s *Server) Rename(c context.Context, req *dn.RenameReq) (*dn.RenameResp, error) {
-	err := os.Rename(req.OldPath, req.NewPath)
+	err := os.Rename(s.DataDirectory+req.OldPath, s.DataDirectory+req.NewPath)
 	if err != nil {
 		log.Println("cannot rename the file:", err)
 		return &dn.RenameResp{}, err

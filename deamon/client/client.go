@@ -36,6 +36,27 @@ func StatHandler(nameNodeAddress string, sourceFilePath string) (*client.StatRes
 	return client.Stat(rpcClient, sourceFilePath)
 }
 
+func MkdirHandler(nameNodeAddress string, sourceFilePath string) bool {
+	rpcClient, err := initializeClientUtil(nameNodeAddress)
+	util.Check(err)
+	defer rpcClient.Close()
+	return client.Mkdir(rpcClient, sourceFilePath)
+}
+
+func RenameHandle(nameNodeAddress string, remoteFilePath string, renameDestPath string) bool {
+	rpcClient, err := initializeClientUtil(nameNodeAddress)
+	util.Check(err)
+	defer rpcClient.Close()
+	return client.Rename(rpcClient, remoteFilePath, renameDestPath)
+}
+
+func ListHandler(nameNodeAddress string, parentPath string) (*client.ListResp, error) {
+	rpcClient, err := initializeClientUtil(nameNodeAddress)
+	util.Check(err)
+	defer rpcClient.Close()
+	return client.List(rpcClient, parentPath)
+}
+
 func initializeClientUtil(nameNodeAddress string) (*grpc.ClientConn, error) {
 	host, port, err := net.SplitHostPort(nameNodeAddress)
 	util.Check(err)

@@ -3,6 +3,7 @@ package util
 import (
 	"log"
 	"os"
+	"strings"
 )
 
 type DataNodeInstance struct {
@@ -49,4 +50,15 @@ func PathExist(path string) (bool, error) {
 		return false, nil
 	}
 	return false, err //如果有错误了，但是不是不存在的错误，所以把这个错误原封不动的返回
+}
+
+// ModPath 修改path格式
+func ModPath(path string) string {
+	if !strings.HasSuffix(path, "/") {
+		path = path + "/"
+	}
+	if !strings.HasPrefix(path, "/") {
+		path = "/" + path
+	}
+	return path
 }

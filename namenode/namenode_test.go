@@ -35,6 +35,8 @@ func TestNameNodeServiceWrite(t *testing.T) {
 		FileNameToBlocks:   make(map[string][]string),
 		IdToDataNodes:      make(map[uint64]util.DataNodeInstance),
 		BlockToDataNodeIds: make(map[string][]uint64),
+		DataNodeMessageMap: make(map[string]DataNodeMessage),
+		DirTree:            initDirTree(),
 	}
 
 	testDataNodeInstance1 := util.DataNodeInstance{Host: "localhost", ServicePort: "1234"}

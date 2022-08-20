@@ -11,6 +11,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"log"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -18,6 +19,11 @@ type StatResp struct {
 	FileName string
 	FileSize int64
 	ModTime  time.Time
+}
+
+type ListResp struct {
+	DirName  []string
+	FileName []string
 }
 
 func Put(nameNodeConn *grpc.ClientConn, sourceFilePath string, destFilePath string) bool {
@@ -33,6 +39,7 @@ func Put(nameNodeConn *grpc.ClientConn, sourceFilePath string, destFilePath stri
 	fileName := destFilePath
 	util.Check(err)
 
+	//分割filename
 	namenodeWriteRequest := &namenode_pb.WriteRequest{FileName: fileName, FileSize: fileSize}
 
 	// ---------------- Step2: 从 namenode 获取初始化的元数据 ----------------
@@ -252,5 +259,119 @@ func Stat(nameNodeConn *grpc.ClientConn, filename string) (*StatResp, error) {
 	return &StatResp{
 		ModTime:  time.Unix(modTime/int64(n), 0),
 		FileSize: size,
+	}, nil
+}
+
+func Mkdir(nameNodeConn *grpc.ClientConn, filename string) bool {
+	//先判断用户传入的filename是否以/号结尾
+	suffix := strings.HasSuffix(filename, "/")
+	if !suffix {
+		filename = filename + "/"
+	}
+	client := namenode_pb.NewNameNodeServiceClient(nameNodeConn)
+	_, err := client.Mkdir(context.Background(), &namenode_pb.MkdirReq{Path: filename})
+	if err != nil {
+		log.Println("NameNode Mkdir Error:", err)
+		return false
+	}
+	nodes, err := client.GetDataNodes(context.Background(), &namenode_pb.GetDataNodesReq{})
+	if err != nil {
+		log.Println("NameNode Get DataNodes Error:", err)
+		return false
+	}
+	for _, dni := range nodes.DataNodeList {
+		conn, err := grpc.Dial(dni, grpc.WithTransportCredentials(insecure.NewCredentials()))
+		if err != nil {
+			log.Println("Dial DataNodes Error:", err)
+			return false
+		}
+		resp, err := dn.NewDataNodeClient(conn).Mkdir(context.Background(), &dn.MkdirReq{
+			Path: filename,
+		})
+		if err != nil {
+			log.Println("cannot dial method from datanode:", dni)
+			return false
+		}
+		if resp.Success {
+		} else {
+			return false
+		}
+	}
+	return true
+}
+
+func Rename(nameNodeConn *grpc.ClientConn, remoteFilePath string, renameDestPath string) bool {
+	//判断文件类型，目录交给datanode处理，文件交给NameNode处理
+	//先将remoteFilePath交给NameNode判断是否是文件
+	client := namenode_pb.NewNameNodeServiceClient(nameNodeConn)
+	resp, err := client.IsDir(context.Background(), &namenode_pb.IsDirReq{
+		Filename: remoteFilePath,
+	})
+	if err != nil {
+		log.Println("NameNode IsDir Error:", err)
+		return false
+	}
+	if resp.Ok {
+		//是文件夹格式，告诉datanode更改目录名称，也要告诉NameNode更新tree
+		_, err := client.ReDirTree(context.Background(), &namenode_pb.ReDirTreeReq{
+			OldPath: remoteFilePath,
+			NewPath: renameDestPath,
+		})
+		if err != nil {
+			log.Println("NameNode ReDirTree Error:", err)
+			return false
+		}
+		nodes, err := client.GetDataNodes(context.Background(), &namenode_pb.GetDataNodesReq{})
+		if err != nil {
+			log.Println("NameNode Get DataNodes Error:", err)
+			return false
+		}
+		for _, dni := range nodes.DataNodeList {
+			conn, err := grpc.Dial(dni, grpc.WithTransportCredentials(insecure.NewCredentials()))
+			if err != nil {
+				log.Println("Dial DataNodes Error:", err)
+				return false
+			}
+			renameResp, err := dn.NewDataNodeClient(conn).Rename(context.Background(), &dn.RenameReq{
+				OldPath: remoteFilePath,
+				NewPath: renameDestPath,
+			})
+			if err != nil {
+				log.Println("cannot dial method from datanode:", dni)
+				return false
+			}
+			if renameResp.Success {
+			} else {
+				return false
+			}
+		}
+	} else {
+		//是文件形式，告诉NameNode更改文件名称
+		renameResp, err := client.Rename(context.Background(), &namenode_pb.RenameReq{
+			OldFileName: remoteFilePath,
+			NewFileName: renameDestPath,
+		})
+		if err != nil {
+			log.Println("NameNode Rename Error:", err)
+			return false
+		}
+		if !renameResp.Success {
+			return false
+		}
+	}
+	return true
+}
+
+func List(nameNodeConn *grpc.ClientConn, parentPath string) (*ListResp, error) {
+	resp, err := namenode_pb.NewNameNodeServiceClient(nameNodeConn).List(context.Background(), &namenode_pb.ListReq{
+		ParentPath: parentPath,
+	})
+	if err != nil {
+		log.Println("NameNode List Error:", err)
+		return nil, err
+	}
+	return &ListResp{
+		FileName: resp.FileName,
+		DirName:  resp.DirName,
 	}, nil
 }

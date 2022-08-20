@@ -2,7 +2,9 @@ package namenode
 
 import (
 	"context"
+	"errors"
 	"go-fs/pkg/e"
+	"go-fs/pkg/tree"
 	"go-fs/pkg/util"
 	dn "go-fs/proto/datanode"
 	namenode_pb "go-fs/proto/namenode"
@@ -40,6 +42,7 @@ type Service struct {
 	FileNameToBlocks   map[string][]string
 	BlockToDataNodeIds map[string][]uint64
 	DataNodeMessageMap map[string]DataNodeMessage
+	DirTree            *tree.DirTree
 }
 
 type DataNodeMessage struct {
@@ -59,7 +62,16 @@ func NewService(blockSize uint64, replicationFactor uint64, serverPort uint16) *
 		IdToDataNodes:      make(map[uint64]util.DataNodeInstance),
 		BlockToDataNodeIds: make(map[string][]uint64),
 		DataNodeMessageMap: make(map[string]DataNodeMessage),
+		DirTree:            initDirTree(),
 	}
+}
+
+func initDirTree() *tree.DirTree {
+	root := &tree.DirTreeNode{
+		Name:     "/",
+		Children: []*tree.DirTreeNode{},
+	}
+	return &tree.DirTree{Root: root}
 }
 
 // SelectRandomDataNodes 选择datanode节点
@@ -181,6 +193,19 @@ func (nn *Service) WriteData(ctx context.Context, req *namenode_pb.WriteRequest)
 	var res namenode_pb.WriteResponse
 
 	nn.FileNameToBlocks[req.FileName] = []string{}
+
+	if !strings.HasPrefix(req.FileName, "/") {
+		req.FileName = "/" + req.FileName
+	}
+	if !strings.HasSuffix(req.FileName, "/") {
+		req.FileName = req.FileName + "/"
+	}
+	insert := nn.DirTree.Insert(req.FileName)
+	if !insert {
+		log.Println("请确认你创建的文件目录是否存在")
+		return &namenode_pb.WriteResponse{}, nil
+	}
+	log.Println("插入后目录树为", nn.DirTree.LookAll())
 
 	numberOfBlocksToAllocate := uint64(math.Ceil(float64(req.FileSize) / float64(nn.BlockSize)))
 	log.Println("分配块的数量:", numberOfBlocksToAllocate)
@@ -384,4 +409,84 @@ func (s *Service) StatData(c context.Context, req *namenode_pb.StatDataReq) (*na
 	}
 
 	return &res, nil
+}
+
+func (s *Service) GetDataNodes(c context.Context, req *namenode_pb.GetDataNodesReq) (*namenode_pb.GetDataNodesResp, error) {
+	var list []string
+	for _, dni := range s.IdToDataNodes {
+		list = append(list, dni.Host+":"+dni.ServicePort)
+	}
+	return &namenode_pb.GetDataNodesResp{
+		DataNodeList: list,
+	}, nil
+}
+
+func (s *Service) IsDir(c context.Context, req *namenode_pb.IsDirReq) (*namenode_pb.IsDirResp, error) {
+	filename := util.ModPath(req.Filename)
+	//空文件夹下面会有..文件夹
+	dir := s.DirTree.FindSubDir(filename)
+	if len(dir) == 0 {
+		return &namenode_pb.IsDirResp{Ok: false}, nil
+	} else {
+		return &namenode_pb.IsDirResp{Ok: true}, nil
+	}
+}
+
+func (s *Service) Rename(c context.Context, req *namenode_pb.RenameReq) (*namenode_pb.RenameResp, error) {
+	list := s.FileNameToBlocks[req.OldFileName]
+	s.FileNameToBlocks[req.NewFileName] = list
+	delete(s.FileNameToBlocks, req.OldFileName)
+	return &namenode_pb.RenameResp{
+		Success: true,
+	}, nil
+}
+
+func (s *Service) Mkdir(c context.Context, req *namenode_pb.MkdirReq) (*namenode_pb.MkdirResp, error) {
+	path := util.ModPath(req.Path)
+	ok := s.DirTree.Insert(path)
+	if !ok {
+		log.Println("插入目录失败，请确认操作是否有误")
+		return &namenode_pb.MkdirResp{}, errors.New("插入目录失败，请确认操作是否有误")
+	}
+	ok = s.DirTree.Insert(path + "../")
+	if !ok {
+		log.Println("插入目录失败，请确认操作是否有误")
+		return &namenode_pb.MkdirResp{}, errors.New("插入目录失败，请确认操作是否有误")
+	}
+	return &namenode_pb.MkdirResp{}, nil
+}
+
+func (s *Service) List(c context.Context, req *namenode_pb.ListReq) (*namenode_pb.ListResp, error) {
+	path := util.ModPath(req.ParentPath)
+	dir := s.DirTree.FindSubDir(path)
+	var dirNameList []string
+	var fileNameList []string
+	for _, str := range dir {
+		resp, err := s.IsDir(context.Background(), &namenode_pb.IsDirReq{
+			Filename: path + str + "/",
+		})
+		if err != nil {
+			log.Println("NameNode IsDir Error:", err)
+			return &namenode_pb.ListResp{}, err
+		}
+		if resp.Ok {
+			//是目录
+			dirNameList = append(dirNameList, str)
+		} else {
+			fileNameList = append(fileNameList, str)
+		}
+	}
+	return &namenode_pb.ListResp{
+		FileName: fileNameList,
+		DirName:  dirNameList,
+	}, nil
+
+}
+
+func (s *Service) ReDirTree(c context.Context, req *namenode_pb.ReDirTreeReq) (*namenode_pb.ReDirTreeResp, error) {
+	old := util.ModPath(req.OldPath)
+	newPath := util.ModPath(req.NewPath)
+	s.DirTree.Rename(s.DirTree.Root, old, newPath)
+	log.Println("更名后的tree:", s.DirTree)
+	return &namenode_pb.ReDirTreeResp{Success: true}, nil
 }
