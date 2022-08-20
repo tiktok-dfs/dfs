@@ -21,6 +21,11 @@ type StatResp struct {
 	ModTime  time.Time
 }
 
+type ListResp struct {
+	DirName  []string
+	FileName []string
+}
+
 func Put(nameNodeConn *grpc.ClientConn, sourceFilePath string, destFilePath string) bool {
 	nameNodeInstance := namenode_pb.NewNameNodeServiceClient(nameNodeConn)
 
@@ -34,6 +39,7 @@ func Put(nameNodeConn *grpc.ClientConn, sourceFilePath string, destFilePath stri
 	fileName := destFilePath
 	util.Check(err)
 
+	//分割filename
 	namenodeWriteRequest := &namenode_pb.WriteRequest{FileName: fileName, FileSize: fileSize}
 
 	// ---------------- Step2: 从 namenode 获取初始化的元数据 ----------------
@@ -262,7 +268,13 @@ func Mkdir(nameNodeConn *grpc.ClientConn, filename string) bool {
 	if !suffix {
 		filename = filename + "/"
 	}
-	nodes, err := namenode_pb.NewNameNodeServiceClient(nameNodeConn).GetDataNodes(context.Background(), &namenode_pb.GetDataNodesReq{})
+	client := namenode_pb.NewNameNodeServiceClient(nameNodeConn)
+	_, err := client.Mkdir(context.Background(), &namenode_pb.MkdirReq{Path: filename})
+	if err != nil {
+		log.Println("NameNode Mkdir Error:", err)
+		return false
+	}
+	nodes, err := client.GetDataNodes(context.Background(), &namenode_pb.GetDataNodesReq{})
 	if err != nil {
 		log.Println("NameNode Get DataNodes Error:", err)
 		return false
@@ -300,7 +312,15 @@ func Rename(nameNodeConn *grpc.ClientConn, remoteFilePath string, renameDestPath
 		return false
 	}
 	if resp.Ok {
-		//是文件夹格式，告诉datanode更改目录名称
+		//是文件夹格式，告诉datanode更改目录名称，也要告诉NameNode更新tree
+		_, err := client.ReDirTree(context.Background(), &namenode_pb.ReDirTreeReq{
+			OldPath: remoteFilePath,
+			NewPath: renameDestPath,
+		})
+		if err != nil {
+			log.Println("NameNode ReDirTree Error:", err)
+			return false
+		}
 		nodes, err := client.GetDataNodes(context.Background(), &namenode_pb.GetDataNodesReq{})
 		if err != nil {
 			log.Println("NameNode Get DataNodes Error:", err)
@@ -340,4 +360,18 @@ func Rename(nameNodeConn *grpc.ClientConn, remoteFilePath string, renameDestPath
 		}
 	}
 	return true
+}
+
+func List(nameNodeConn *grpc.ClientConn, parentPath string) (*ListResp, error) {
+	resp, err := namenode_pb.NewNameNodeServiceClient(nameNodeConn).List(context.Background(), &namenode_pb.ListReq{
+		ParentPath: parentPath,
+	})
+	if err != nil {
+		log.Println("NameNode List Error:", err)
+		return nil, err
+	}
+	return &ListResp{
+		FileName: resp.FileName,
+		DirName:  resp.DirName,
+	}, nil
 }

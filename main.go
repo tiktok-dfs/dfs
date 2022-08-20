@@ -81,12 +81,18 @@ func WorkByCli() {
 
 		} else if *clientOperationPtr == "mkdir" {
 			status := client.MkdirHandler(*clientNameNodePortPtr, *clientFilenamePtr)
-			log.Println("Delete Status:", status)
+			log.Println("Mkdir Status:", status)
 
 		} else if *clientOperationPtr == "mv" {
 			status := client.RenameHandle(*clientNameNodePortPtr, *clientOldFilenamePtr, *clientNewFilenamePtr)
 			log.Println("mv Status:", status)
 
+		} else if *clientOperationPtr == "ls" {
+			resp, err := client.ListHandler(*clientNameNodePortPtr, *clientFilenamePtr)
+			if err != nil {
+				log.Println("Ls Error:", err)
+			}
+			log.Println("ls Data:", resp)
 		}
 	}
 }

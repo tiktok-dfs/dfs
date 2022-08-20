@@ -12,6 +12,34 @@ service NameNodeService {
   rpc GetDataNodes(GetDataNodesReq) returns (GetDataNodesResp);
   rpc IsDir(IsDirReq) returns (IsDirResp);
   rpc Rename(RenameReq) returns (RenameResp);
+  rpc Mkdir(MkdirReq) returns (MkdirResp);
+  rpc List(ListReq) returns (ListResp);
+  rpc ReDirTree(ReDirTreeReq) returns (ReDirTreeResp);
+}
+
+message ListReq {
+  string ParentPath = 1;
+}
+
+message ListResp {
+  repeated string DirName = 1;
+  repeated string FileName = 2;
+}
+
+message MkdirReq {
+  string Path = 1;
+}
+
+message MkdirResp {
+}
+
+message ReDirTreeReq {
+  string OldPath = 1;
+  string NewPath = 2;
+}
+
+message ReDirTreeResp {
+  bool Success = 1;
 }
 
 message RenameReq {

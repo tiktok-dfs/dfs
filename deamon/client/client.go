@@ -50,6 +50,13 @@ func RenameHandle(nameNodeAddress string, remoteFilePath string, renameDestPath 
 	return client.Rename(rpcClient, remoteFilePath, renameDestPath)
 }
 
+func ListHandler(nameNodeAddress string, parentPath string) (*client.ListResp, error) {
+	rpcClient, err := initializeClientUtil(nameNodeAddress)
+	util.Check(err)
+	defer rpcClient.Close()
+	return client.List(rpcClient, parentPath)
+}
+
 func initializeClientUtil(nameNodeAddress string) (*grpc.ClientConn, error) {
 	host, port, err := net.SplitHostPort(nameNodeAddress)
 	util.Check(err)
