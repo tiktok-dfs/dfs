@@ -53,8 +53,8 @@ func getEncoder() zapcore.Encoder {
 	return zapcore.NewConsoleEncoder(encoderConfig)
 }
 
-func getLogWriter(localtion string) zapcore.WriteSyncer {
-	file, err := os.Create(localtion)
+func getLogWriter(location string) zapcore.WriteSyncer {
+	file, err := os.OpenFile(location, os.O_RDWR|os.O_APPEND, 0664)
 	if err != nil {
 		panic(err)
 	}

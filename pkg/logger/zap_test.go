@@ -13,11 +13,11 @@ func TestInitLogger(t *testing.T) {
 	zap.L().Error("logger error, It should be in both runtime.log and runtime_err.log")
 
 	zap.S().Infow("suger info",
-		"localtion", "runtime.log",
+		"location", "runtime.log",
 		"should be in runtime_err.log", "no")
 
 	zap.S().Errorw("suger error",
-		"localtion", "runtime.log and runtime_err.log",
+		"location", "runtime.log and runtime_err.log",
 		"should be in runtime_err.log", "yes")
 }
 
