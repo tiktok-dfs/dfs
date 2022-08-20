@@ -5,6 +5,7 @@ import (
 	"go-fs/deamon/client"
 	"go-fs/deamon/datanode"
 	"go-fs/deamon/namenode"
+	"go-fs/pkg/logger"
 	"log"
 	"os"
 	"strings"
@@ -15,6 +16,8 @@ func main() {
 }
 
 func WorkByCli() {
+	logger.InitLogger()
+
 	dataNodeCommand := flag.NewFlagSet("datanode", flag.ExitOnError)
 	nameNodeCommand := flag.NewFlagSet("namenode", flag.ExitOnError)
 	clientCommand := flag.NewFlagSet("client", flag.ExitOnError)
