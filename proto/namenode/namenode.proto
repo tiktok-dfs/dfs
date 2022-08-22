@@ -15,6 +15,54 @@ service NameNodeService {
   rpc Mkdir(MkdirReq) returns (MkdirResp);
   rpc List(ListReq) returns (ListResp);
   rpc ReDirTree(ReDirTreeReq) returns (ReDirTreeResp);
+  rpc HeartBeat(HeartBeatReq) returns (HeartBeatResp);
+  rpc RegisterDataNode(RegisterDataNodeReq) returns (RegisterDataNodeResp);
+  rpc JoinCluster(JoinClusterReq) returns (JoinClusterResp);
+  rpc UpdateDataNodeMessage(UpdateDataNodeMessageReq) returns (UpdateDataNodeMessageResp);
+}
+
+message JoinClusterReq {
+  string Id = 1;
+  string Addr = 2;
+  uint64 PreviousIndex = 3;
+}
+
+message JoinClusterResp{
+  bool Success = 1;
+}
+
+message UpdateDataNodeMessageReq {
+  string Addr = 1;
+  uint64 UsedDisk = 2;
+  uint64 UsedMem = 3;
+  float CpuPercent = 4;
+  uint64 TotalMem = 5;
+  uint64 TotalDisk = 6;
+}
+
+message UpdateDataNodeMessageResp {
+  bool Success = 1;
+}
+
+message RegisterDataNodeReq{
+  string Addr = 1;
+  uint64 UsedDisk = 2;
+  uint64 UsedMem = 3;
+  float CpuPercent = 4;
+  uint64 TotalMem = 5;
+  uint64 TotalDisk = 6;
+}
+
+message RegisterDataNodeResp {
+  bool Success = 1;
+}
+
+message HeartBeatReq {
+  string Addr = 1;
+}
+
+message HeartBeatResp {
+  bool Success = 1;
 }
 
 message ListReq {

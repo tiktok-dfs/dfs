@@ -1,0 +1,9 @@
+namenode:
+  port: 7000
+  blocksize: 30
+  replicationfactor: 2
+raft:
+  raftdatadir: /usr/local/dfs/metadata/
+datanode:
+  port: 8000
+  path: /usr/local/dfs/data/

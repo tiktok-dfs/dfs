@@ -2,13 +2,23 @@ package main
 
 import (
 	"flag"
+	"go-fs/common/config"
 	"go-fs/deamon/client"
 	"go-fs/deamon/datanode"
 	"go-fs/deamon/namenode"
 	"log"
 	"os"
-	"strings"
+	"sync"
 )
+
+var once sync.Once
+
+func init() {
+	once.Do(func() {
+		config.ReadCfg()
+		config.Init()
+	})
+}
 
 func main() {
 	WorkByCli()
@@ -19,13 +29,9 @@ func WorkByCli() {
 	nameNodeCommand := flag.NewFlagSet("namenode", flag.ExitOnError)
 	clientCommand := flag.NewFlagSet("client", flag.ExitOnError)
 
-	dataNodePortPtr := dataNodeCommand.Int("port", 7000, "DataNode communication port")
-	dataNodeDataLocationPtr := dataNodeCommand.String("data-location", ".", "DataNode data storage location")
+	nameNodeAddr := dataNodeCommand.String("namenode", "", "NameNode communication port")
 
-	nameNodePortPtr := nameNodeCommand.Int("port", 9000, "NameNode communication port")
-	nameNodeListPtr := nameNodeCommand.String("datanodes", "", "Comma-separated list of DataNodes to connect to")
-	nameNodeBlockSizePtr := nameNodeCommand.Int("block-size", 32, "Block size to store")
-	nameNodeReplicationFactorPtr := nameNodeCommand.Int("replication-factor", 1, "Replication factor of the system")
+	follow := nameNodeCommand.String("follow", "", "join raft cluster")
 
 	clientNameNodePortPtr := clientCommand.String("namenode", "localhost:9000", "NameNode communication port")
 	clientOperationPtr := clientCommand.String("operation", "", "Operation to perform")
@@ -42,17 +48,16 @@ func WorkByCli() {
 	switch os.Args[1] {
 	case "datanode":
 		_ = dataNodeCommand.Parse(os.Args[2:])
-		datanode.InitializeDataNodeUtil(*dataNodePortPtr, *dataNodeDataLocationPtr)
+		dataNodePortPtr := config.DataNodeCfg.Port
+		dataNodeDataLocationPtr := config.DataNodeCfg.Path
+		datanode.InitializeDataNodeUtil(*nameNodeAddr, int(dataNodePortPtr), dataNodeDataLocationPtr)
 
 	case "namenode":
 		_ = nameNodeCommand.Parse(os.Args[2:])
-		var listOfDataNodes []string
-		if len(*nameNodeListPtr) > 1 {
-			listOfDataNodes = strings.Split(*nameNodeListPtr, ",")
-		} else {
-			listOfDataNodes = []string{}
-		}
-		namenode.InitializeNameNodeUtil(*nameNodePortPtr, *nameNodeBlockSizePtr, *nameNodeReplicationFactorPtr, listOfDataNodes)
+		nameNodePort := config.NameNodeCfg.Port
+		nameNodeBlockSize := config.NameNodeCfg.BlockSize
+		nameNodeReplicationFactor := config.NameNodeCfg.ReplicationFactor
+		namenode.InitializeNameNodeUtil(*follow, config.RaftCfg.RaftId, int(nameNodePort), int(nameNodeBlockSize), int(nameNodeReplicationFactor))
 
 	case "client":
 		_ = clientCommand.Parse(os.Args[2:])

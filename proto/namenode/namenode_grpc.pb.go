@@ -33,6 +33,10 @@ type NameNodeServiceClient interface {
 	Mkdir(ctx context.Context, in *MkdirReq, opts ...grpc.CallOption) (*MkdirResp, error)
 	List(ctx context.Context, in *ListReq, opts ...grpc.CallOption) (*ListResp, error)
 	ReDirTree(ctx context.Context, in *ReDirTreeReq, opts ...grpc.CallOption) (*ReDirTreeResp, error)
+	HeartBeat(ctx context.Context, in *HeartBeatReq, opts ...grpc.CallOption) (*HeartBeatResp, error)
+	RegisterDataNode(ctx context.Context, in *RegisterDataNodeReq, opts ...grpc.CallOption) (*RegisterDataNodeResp, error)
+	JoinCluster(ctx context.Context, in *JoinClusterReq, opts ...grpc.CallOption) (*JoinClusterResp, error)
+	UpdateDataNodeMessage(ctx context.Context, in *UpdateDataNodeMessageReq, opts ...grpc.CallOption) (*UpdateDataNodeMessageResp, error)
 }
 
 type nameNodeServiceClient struct {
@@ -142,6 +146,42 @@ func (c *nameNodeServiceClient) ReDirTree(ctx context.Context, in *ReDirTreeReq,
 	return out, nil
 }
 
+func (c *nameNodeServiceClient) HeartBeat(ctx context.Context, in *HeartBeatReq, opts ...grpc.CallOption) (*HeartBeatResp, error) {
+	out := new(HeartBeatResp)
+	err := c.cc.Invoke(ctx, "/namenode_.NameNodeService/HeartBeat", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *nameNodeServiceClient) RegisterDataNode(ctx context.Context, in *RegisterDataNodeReq, opts ...grpc.CallOption) (*RegisterDataNodeResp, error) {
+	out := new(RegisterDataNodeResp)
+	err := c.cc.Invoke(ctx, "/namenode_.NameNodeService/RegisterDataNode", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *nameNodeServiceClient) JoinCluster(ctx context.Context, in *JoinClusterReq, opts ...grpc.CallOption) (*JoinClusterResp, error) {
+	out := new(JoinClusterResp)
+	err := c.cc.Invoke(ctx, "/namenode_.NameNodeService/JoinCluster", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *nameNodeServiceClient) UpdateDataNodeMessage(ctx context.Context, in *UpdateDataNodeMessageReq, opts ...grpc.CallOption) (*UpdateDataNodeMessageResp, error) {
+	out := new(UpdateDataNodeMessageResp)
+	err := c.cc.Invoke(ctx, "/namenode_.NameNodeService/UpdateDataNodeMessage", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // NameNodeServiceServer is the server API for NameNodeService service.
 // All implementations must embed UnimplementedNameNodeServiceServer
 // for forward compatibility
@@ -157,6 +197,10 @@ type NameNodeServiceServer interface {
 	Mkdir(context.Context, *MkdirReq) (*MkdirResp, error)
 	List(context.Context, *ListReq) (*ListResp, error)
 	ReDirTree(context.Context, *ReDirTreeReq) (*ReDirTreeResp, error)
+	HeartBeat(context.Context, *HeartBeatReq) (*HeartBeatResp, error)
+	RegisterDataNode(context.Context, *RegisterDataNodeReq) (*RegisterDataNodeResp, error)
+	JoinCluster(context.Context, *JoinClusterReq) (*JoinClusterResp, error)
+	UpdateDataNodeMessage(context.Context, *UpdateDataNodeMessageReq) (*UpdateDataNodeMessageResp, error)
 	mustEmbedUnimplementedNameNodeServiceServer()
 }
 
@@ -196,6 +240,18 @@ func (UnimplementedNameNodeServiceServer) List(context.Context, *ListReq) (*List
 }
 func (UnimplementedNameNodeServiceServer) ReDirTree(context.Context, *ReDirTreeReq) (*ReDirTreeResp, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ReDirTree not implemented")
+}
+func (UnimplementedNameNodeServiceServer) HeartBeat(context.Context, *HeartBeatReq) (*HeartBeatResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method HeartBeat not implemented")
+}
+func (UnimplementedNameNodeServiceServer) RegisterDataNode(context.Context, *RegisterDataNodeReq) (*RegisterDataNodeResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RegisterDataNode not implemented")
+}
+func (UnimplementedNameNodeServiceServer) JoinCluster(context.Context, *JoinClusterReq) (*JoinClusterResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method JoinCluster not implemented")
+}
+func (UnimplementedNameNodeServiceServer) UpdateDataNodeMessage(context.Context, *UpdateDataNodeMessageReq) (*UpdateDataNodeMessageResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateDataNodeMessage not implemented")
 }
 func (UnimplementedNameNodeServiceServer) mustEmbedUnimplementedNameNodeServiceServer() {}
 
@@ -408,6 +464,78 @@ func _NameNodeService_ReDirTree_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
+func _NameNodeService_HeartBeat_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(HeartBeatReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NameNodeServiceServer).HeartBeat(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/namenode_.NameNodeService/HeartBeat",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NameNodeServiceServer).HeartBeat(ctx, req.(*HeartBeatReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _NameNodeService_RegisterDataNode_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RegisterDataNodeReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NameNodeServiceServer).RegisterDataNode(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/namenode_.NameNodeService/RegisterDataNode",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NameNodeServiceServer).RegisterDataNode(ctx, req.(*RegisterDataNodeReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _NameNodeService_JoinCluster_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(JoinClusterReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NameNodeServiceServer).JoinCluster(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/namenode_.NameNodeService/JoinCluster",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NameNodeServiceServer).JoinCluster(ctx, req.(*JoinClusterReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _NameNodeService_UpdateDataNodeMessage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateDataNodeMessageReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NameNodeServiceServer).UpdateDataNodeMessage(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/namenode_.NameNodeService/UpdateDataNodeMessage",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NameNodeServiceServer).UpdateDataNodeMessage(ctx, req.(*UpdateDataNodeMessageReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // NameNodeService_ServiceDesc is the grpc.ServiceDesc for NameNodeService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -458,6 +586,22 @@ var NameNodeService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ReDirTree",
 			Handler:    _NameNodeService_ReDirTree_Handler,
+		},
+		{
+			MethodName: "HeartBeat",
+			Handler:    _NameNodeService_HeartBeat_Handler,
+		},
+		{
+			MethodName: "RegisterDataNode",
+			Handler:    _NameNodeService_RegisterDataNode_Handler,
+		},
+		{
+			MethodName: "JoinCluster",
+			Handler:    _NameNodeService_JoinCluster_Handler,
+		},
+		{
+			MethodName: "UpdateDataNodeMessage",
+			Handler:    _NameNodeService_UpdateDataNodeMessage_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

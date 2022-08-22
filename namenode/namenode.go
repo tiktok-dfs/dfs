@@ -3,6 +3,9 @@ package namenode
 import (
 	"context"
 	"errors"
+	"github.com/Jille/raftadmin"
+	"github.com/Jille/raftadmin/proto"
+	"github.com/hashicorp/raft"
 	"go-fs/pkg/e"
 	"go-fs/pkg/tree"
 	"go-fs/pkg/util"
@@ -14,6 +17,7 @@ import (
 	"math"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -42,7 +46,9 @@ type Service struct {
 	FileNameToBlocks   map[string][]string
 	BlockToDataNodeIds map[string][]uint64
 	DataNodeMessageMap map[string]DataNodeMessage
+	DataNodeHeartBeat  map[string]time.Time
 	DirTree            *tree.DirTree
+	RaftNode           *raft.Raft
 }
 
 type DataNodeMessage struct {
@@ -53,8 +59,9 @@ type DataNodeMessage struct {
 	TotalDisk  uint64
 }
 
-func NewService(blockSize uint64, replicationFactor uint64, serverPort uint16) *Service {
+func NewService(r *raft.Raft, blockSize uint64, replicationFactor uint64, serverPort uint16) *Service {
 	return &Service{
+		RaftNode:           r,
 		Port:               serverPort,
 		BlockSize:          blockSize,
 		ReplicationFactor:  replicationFactor,
@@ -489,4 +496,47 @@ func (s *Service) ReDirTree(c context.Context, req *namenode_pb.ReDirTreeReq) (*
 	s.DirTree.Rename(s.DirTree.Root, old, newPath)
 	log.Println("更名后的tree:", s.DirTree)
 	return &namenode_pb.ReDirTreeResp{Success: true}, nil
+}
+
+func (s *Service) HeartBeat(c context.Context, req *namenode_pb.HeartBeatReq) (*namenode_pb.HeartBeatResp, error) {
+	log.Println("receive heartbeat success:", req.Addr)
+	s.DataNodeHeartBeat[req.Addr] = time.Now()
+	return &namenode_pb.HeartBeatResp{Success: true}, nil
+}
+
+func (s *Service) RegisterDataNode(c context.Context, req *namenode_pb.RegisterDataNodeReq) (*namenode_pb.RegisterDataNodeResp, error) {
+	s.DataNodeHeartBeat[req.Addr] = time.Now()
+	s.DataNodeMessageMap[req.Addr] = DataNodeMessage{
+		UsedDisk:   req.UsedDisk,
+		UsedMem:    req.UsedMem,
+		TotalMem:   req.TotalMem,
+		TotalDisk:  req.TotalDisk,
+		CpuPercent: req.CpuPercent,
+	}
+	return &namenode_pb.RegisterDataNodeResp{Success: true}, nil
+}
+
+func (s *Service) UpdateDataNodeMessage(c context.Context, req *namenode_pb.UpdateDataNodeMessageReq) (*namenode_pb.UpdateDataNodeMessageResp, error) {
+	s.DataNodeMessageMap[req.Addr] = DataNodeMessage{
+		UsedDisk:   req.UsedDisk,
+		UsedMem:    req.UsedMem,
+		TotalMem:   req.TotalMem,
+		TotalDisk:  req.TotalDisk,
+		CpuPercent: req.CpuPercent,
+	}
+	return &namenode_pb.UpdateDataNodeMessageResp{Success: true}, nil
+}
+
+func (s *Service) JoinCluster(c context.Context, req *namenode_pb.JoinClusterReq) (*namenode_pb.JoinClusterResp, error) {
+	log.Println("申请加入集群的节点信息为:", req.Id, " ", req.Addr)
+	future, err := raftadmin.Get(s.RaftNode).AddVoter(context.Background(), &proto.AddVoterRequest{
+		Id:            req.Id,
+		Address:       req.Addr,
+		PreviousIndex: req.PreviousIndex,
+	})
+	if err != nil {
+		return &namenode_pb.JoinClusterResp{}, err
+	}
+	log.Println("future", future)
+	return &namenode_pb.JoinClusterResp{Success: true}, nil
 }
