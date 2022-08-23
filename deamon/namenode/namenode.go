@@ -78,6 +78,9 @@ func InitializeNameNodeUtil(host string, master bool, follow, raftId string, ser
 		}
 	}(raftNode)
 
+	// 监测datanode的心跳
+	go checkDataNode(nameNodeInstance)
+
 	// graceful shutdown
 	sig := make(chan os.Signal)
 	signal.Notify(sig, syscall.SIGINT, syscall.SIGKILL)
@@ -86,6 +89,24 @@ func InitializeNameNodeUtil(host string, master bool, follow, raftId string, ser
 
 	server.GracefulStop()
 
+}
+
+func checkDataNode(instance *namenode.Service) {
+	for range time.Tick(time.Millisecond * 1) {
+		if instance.IdToDataNodes == nil {
+			continue
+		}
+		for k, v := range instance.IdToDataNodes {
+			addr := v.Host + ":" + v.ServicePort
+			lastHeartBeatTime := instance.DataNodeHeartBeat[addr]
+			if lastHeartBeatTime.Add(time.Second*5).Unix() < time.Now().Unix() {
+				var reply bool
+				reDistributeError := instance.ReDistributeData(&namenode.ReDistributeDataRequest{DataNodeUri: addr}, &reply)
+				util.Check(reDistributeError)
+				delete(instance.IdToDataNodes, k)
+			}
+		}
+	}
 }
 
 func newRaft(master bool, follow, myID, myAddress string, fsm raft.FSM) (*raft.Raft, *transport.Manager, error) {

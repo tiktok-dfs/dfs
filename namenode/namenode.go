@@ -13,6 +13,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"log"
 	"math"
+	"net"
 	"sort"
 	"strings"
 	"time"
@@ -31,7 +32,7 @@ type ReDistributeDataRequest struct {
 
 type UnderReplicatedBlocks struct {
 	BlockId           string
-	HealthyDataNodeId uint64
+	HealthyDataNodeId int64
 }
 
 type Service struct {
@@ -40,9 +41,9 @@ type Service struct {
 	Port               uint16
 	BlockSize          uint64
 	ReplicationFactor  uint64
-	IdToDataNodes      map[uint64]util.DataNodeInstance
+	IdToDataNodes      map[int64]util.DataNodeInstance
 	FileNameToBlocks   map[string][]string
-	BlockToDataNodeIds map[string][]uint64
+	BlockToDataNodeIds map[string][]int64
 	DataNodeMessageMap map[string]DataNodeMessage
 	DataNodeHeartBeat  map[string]time.Time
 	DirTree            *tree.DirTree
@@ -64,8 +65,8 @@ func NewService(r *raft.Raft, blockSize uint64, replicationFactor uint64, server
 		BlockSize:          blockSize,
 		ReplicationFactor:  replicationFactor,
 		FileNameToBlocks:   make(map[string][]string),
-		IdToDataNodes:      make(map[uint64]util.DataNodeInstance),
-		BlockToDataNodeIds: make(map[string][]uint64),
+		IdToDataNodes:      make(map[int64]util.DataNodeInstance),
+		BlockToDataNodeIds: make(map[string][]int64),
 		DataNodeMessageMap: make(map[string]DataNodeMessage),
 		DataNodeHeartBeat:  make(map[string]time.Time),
 		DirTree:            initDirTree(),
@@ -81,12 +82,12 @@ func initDirTree() *tree.DirTree {
 }
 
 // SelectRandomDataNodes 选择datanode节点
-func (nameNode *Service) SelectRandomDataNodes(availableDataNodes []uint64, replicationFactor uint64) (randomSeletctedDataNodes []uint64) {
+func (nameNode *Service) SelectRandomDataNodes(availableDataNodes []int64, replicationFactor uint64) (randomSeletctedDataNodes []int64) {
 	//已经被选的 data node, 不应该在被选择
-	dataNodePresentMap := make(map[uint64]struct{})
+	dataNodePresentMap := make(map[int64]struct{})
 
-	//根据CPU、Disk、Mem情况选择备份的data node
-	chooseDataNode := make(map[float32][]uint64)
+	//根据CPU、Disk、Mem情况选择备份的data node 现新增key作为判断参数，key为datanode加入的时间戳
+	chooseDataNode := make(map[float32][]int64)
 	for _, i := range availableDataNodes {
 		addr := nameNode.IdToDataNodes[i].Host + ":" + nameNode.IdToDataNodes[i].ServicePort
 		message := nameNode.DataNodeMessageMap[addr]
@@ -94,8 +95,8 @@ func (nameNode *Service) SelectRandomDataNodes(availableDataNodes []uint64, repl
 		diskPercent := message.UsedDisk / message.TotalDisk
 		//计算内存占用率
 		memPercent := message.UsedMem / message.TotalMem
-		//计算该datanode的加权值
-		calculate := float32(diskPercent)*0.4 + float32(memPercent)*0.4 + message.CpuPercent*0.2
+		//计算该datanode的加权值,表明按磁盘占用率30%、内存占用率30%、datanode加入时间30%、CPU利用率10%的权重比进行挑选datanode
+		calculate := float32(diskPercent)*0.3 + float32(memPercent)*0.3 + message.CpuPercent*0.1 + float32(i)*0.3
 		//存入临时map
 		chooseDataNode[calculate] = append(chooseDataNode[calculate], i)
 	}
@@ -230,7 +231,7 @@ func (nameNode *Service) allocateBlocks(fileName string, numberOfBlocks uint64) 
 	nameNode.FileNameToBlocks[fileName] = []string{}
 
 	// 获取所有 data1 nodes 的id
-	var dataNodesAvailable []uint64
+	var dataNodesAvailable []int64
 	for k, _ := range nameNode.IdToDataNodes {
 		dataNodesAvailable = append(dataNodesAvailable, k)
 	}
@@ -264,7 +265,7 @@ func (nameNode *Service) allocateBlocks(fileName string, numberOfBlocks uint64) 
 	return
 }
 
-func (nameNode *Service) assignDataNodes(blockId string, dataNodesAvailable []uint64, replicationFactor uint64) []uint64 {
+func (nameNode *Service) assignDataNodes(blockId string, dataNodesAvailable []int64, replicationFactor uint64) []int64 {
 	// 随机选择block备份的data nodes
 	targetDataNodeIds := nameNode.SelectRandomDataNodes(dataNodesAvailable, replicationFactor)
 	nameNode.BlockToDataNodeIds[blockId] = targetDataNodeIds
@@ -274,7 +275,7 @@ func (nameNode *Service) assignDataNodes(blockId string, dataNodesAvailable []ui
 func (nameNode *Service) ReDistributeData(request *ReDistributeDataRequest, reply *bool) error {
 	log.Printf("DataNode %s is dead, trying to redistribute data1\n", request.DataNodeUri)
 	deadDataNodeSlice := strings.Split(request.DataNodeUri, ":")
-	var deadDataNodeId uint64
+	var deadDataNodeId int64
 
 	// de-register the dead DataNode from IdToDataNodes meta
 	for id, dn := range nameNode.IdToDataNodes {
@@ -309,7 +310,7 @@ func (nameNode *Service) ReDistributeData(request *ReDistributeDataRequest, repl
 		return nil
 	}
 
-	var availableNodes []uint64
+	var availableNodes []int64
 	for k, _ := range nameNode.IdToDataNodes {
 		availableNodes = append(availableNodes, k)
 	}
@@ -511,6 +512,14 @@ func (s *Service) RegisterDataNode(c context.Context, req *namenode_pb.RegisterD
 		TotalMem:   req.TotalMem,
 		TotalDisk:  req.TotalDisk,
 		CpuPercent: req.CpuPercent,
+	}
+	host, port, err := net.SplitHostPort(req.Addr)
+	if err != nil {
+		return &namenode_pb.RegisterDataNodeResp{Success: true}, err
+	}
+	s.IdToDataNodes[time.Now().Unix()] = util.DataNodeInstance{
+		Host:        host,
+		ServicePort: port,
 	}
 	return &namenode_pb.RegisterDataNodeResp{Success: true}, nil
 }
