@@ -3,8 +3,6 @@ package namenode
 import (
 	"context"
 	"errors"
-	"github.com/Jille/raftadmin"
-	"github.com/Jille/raftadmin/proto"
 	"github.com/hashicorp/raft"
 	"go-fs/pkg/e"
 	"go-fs/pkg/tree"
@@ -69,6 +67,7 @@ func NewService(r *raft.Raft, blockSize uint64, replicationFactor uint64, server
 		IdToDataNodes:      make(map[uint64]util.DataNodeInstance),
 		BlockToDataNodeIds: make(map[string][]uint64),
 		DataNodeMessageMap: make(map[string]DataNodeMessage),
+		DataNodeHeartBeat:  make(map[string]time.Time),
 		DirTree:            initDirTree(),
 	}
 }
@@ -529,15 +528,10 @@ func (s *Service) UpdateDataNodeMessage(c context.Context, req *namenode_pb.Upda
 
 func (s *Service) JoinCluster(c context.Context, req *namenode_pb.JoinClusterReq) (*namenode_pb.JoinClusterResp, error) {
 	log.Println("申请加入集群的节点信息为:", req.Id, " ", req.Addr)
-	future, err := raftadmin.Get(s.RaftNode).AddVoter(context.Background(), &proto.AddVoterRequest{
-		Id:            req.Id,
-		Address:       req.Addr,
-		PreviousIndex: req.PreviousIndex,
-	})
-	if err != nil {
-		return &namenode_pb.JoinClusterResp{}, err
+	voter := s.RaftNode.AddVoter(raft.ServerID(req.Id), raft.ServerAddress(req.Addr), req.PreviousIndex, 0)
+	if voter.Error() != nil {
+		return &namenode_pb.JoinClusterResp{}, voter.Error()
 	}
-	log.Println("future", future)
 	return &namenode_pb.JoinClusterResp{Success: true}, nil
 }
 

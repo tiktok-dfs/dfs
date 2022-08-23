@@ -26,11 +26,15 @@ import (
 	"time"
 )
 
-func InitializeNameNodeUtil(master bool, raftId string, serverPort int, blockSize int, replicationFactor int) {
+func InitializeNameNodeUtil(host string, master bool, follow, raftId string, serverPort int, blockSize int, replicationFactor int) {
 
 	hostname, err := os.Hostname()
 	if err != nil {
 		panic(err)
+	}
+	if host == "" {
+		//为了方便Windows下调试
+		hostname = "localhost"
 	}
 
 	log.Printf("BlockSize is %d\n", blockSize)
@@ -43,7 +47,7 @@ func InitializeNameNodeUtil(master bool, raftId string, serverPort int, blockSiz
 	util.Check(err)
 
 	var fsm RaftMessage
-	raftNode, tm, err := newRaft(master, raftId, hostname+addr, &fsm)
+	raftNode, tm, err := newRaft(master, follow, raftId, hostname+addr, &fsm)
 	if err != nil {
 		log.Println("start raft cluster fail:", err)
 	}
@@ -65,6 +69,10 @@ func InitializeNameNodeUtil(master bool, raftId string, serverPort int, blockSiz
 
 	go func(raftNode *raft.Raft) {
 		for range time.Tick(5 * time.Second) {
+			if raftNode == nil {
+				log.Println("节点加入有误，raft未建立成功")
+				continue
+			}
 			id, serverID := raftNode.LeaderWithID()
 			log.Println("当前主节点名称:", id, "host:", serverID)
 		}
@@ -80,7 +88,7 @@ func InitializeNameNodeUtil(master bool, raftId string, serverPort int, blockSiz
 
 }
 
-func newRaft(master bool, myID, myAddress string, fsm raft.FSM) (*raft.Raft, *transport.Manager, error) {
+func newRaft(master bool, follow, myID, myAddress string, fsm raft.FSM) (*raft.Raft, *transport.Manager, error) {
 	c := raft.DefaultConfig()
 	isLeader := make(chan bool, 1)
 	c.NotifyCh = isLeader
@@ -130,14 +138,33 @@ func newRaft(master bool, myID, myAddress string, fsm raft.FSM) (*raft.Raft, *tr
 		if err := f.Error(); err != nil {
 			return nil, nil, fmt.Errorf("raft.Raft.BootstrapCluster: %v", err)
 		}
+	} else if follow != "" {
+		leader, err := FindLeader(follow)
+		if err != nil {
+			return nil, nil, err
+		}
+		conn, err := grpc.Dial(leader, grpc.WithTransportCredentials(insecure.NewCredentials()))
+		if err != nil {
+			return nil, nil, err
+		}
+		resp, err := namenode_pb.NewNameNodeServiceClient(conn).JoinCluster(context.Background(), &namenode_pb.JoinClusterReq{
+			Addr:          myAddress,
+			Id:            myID,
+			PreviousIndex: 0,
+		})
+		if err != nil {
+			return nil, nil, err
+		}
+		if resp.Success {
+			log.Println("join the cluster success")
+		}
 	}
 	return r, tm, nil
 }
 
 // FindLeader 查找NameNode的Raft集群的Leader
 func FindLeader(addrList string) (string, error) {
-	split := strings.Split(addrList, "///")
-	nameNodes := strings.Split(split[1], ",")
+	nameNodes := strings.Split(addrList, ",")
 	var res = ""
 	for _, n := range nameNodes {
 		conn, err := grpc.Dial(n, grpc.WithTransportCredentials(insecure.NewCredentials()))

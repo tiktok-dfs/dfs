@@ -30,8 +30,14 @@ func WorkByCli() {
 	clientCommand := flag.NewFlagSet("client", flag.ExitOnError)
 
 	nameNodeAddr := dataNodeCommand.String("namenode", "", "NameNode communication port")
+	dataport := dataNodeCommand.Int("port", 7000, "")
+	dataLocation := dataNodeCommand.String("path", "", "")
 
 	master := nameNodeCommand.Bool("master", false, "start by boostrap")
+	follow := nameNodeCommand.String("follow", "", "")
+	port := nameNodeCommand.Int("port", 0, "")
+	raftid := nameNodeCommand.String("raftid", "", "")
+	host := nameNodeCommand.String("host", "", "")
 
 	clientNameNodePortPtr := clientCommand.String("namenode", "localhost:9000", "NameNode communication port")
 	clientOperationPtr := clientCommand.String("operation", "", "Operation to perform")
@@ -48,20 +54,34 @@ func WorkByCli() {
 	switch os.Args[1] {
 	case "datanode":
 		_ = dataNodeCommand.Parse(os.Args[2:])
-		dataNodePortPtr := config.DataNodeCfg.Port
+		dataNodePortPtr := int(config.DataNodeCfg.Port)
+		if *dataport != 7000 {
+			//cmd上指定了优先使用指定的,后面亦是如此
+			dataNodePortPtr = *dataport
+		}
 		dataNodeDataLocationPtr := config.DataNodeCfg.Path
+		if *dataLocation != "" {
+			dataNodeDataLocationPtr = *dataLocation
+		}
 		leader, err := namenode.FindLeader(*nameNodeAddr)
 		if err != nil {
 			panic(err)
 		}
-		datanode.InitializeDataNodeUtil(leader, int(dataNodePortPtr), dataNodeDataLocationPtr)
+		datanode.InitializeDataNodeUtil(leader, dataNodePortPtr, dataNodeDataLocationPtr)
 
 	case "namenode":
 		_ = nameNodeCommand.Parse(os.Args[2:])
-		nameNodePort := config.NameNodeCfg.Port
+		nameNodePort := int(config.NameNodeCfg.Port)
+		raftId := config.RaftCfg.RaftId
+		if *port != 0 {
+			nameNodePort = *port
+		}
+		if *raftid != "" {
+			raftId = *raftid
+		}
 		nameNodeBlockSize := config.NameNodeCfg.BlockSize
 		nameNodeReplicationFactor := config.NameNodeCfg.ReplicationFactor
-		namenode.InitializeNameNodeUtil(*master, config.RaftCfg.RaftId, int(nameNodePort), int(nameNodeBlockSize), int(nameNodeReplicationFactor))
+		namenode.InitializeNameNodeUtil(*host, *master, *follow, raftId, nameNodePort, int(nameNodeBlockSize), int(nameNodeReplicationFactor))
 
 	case "client":
 		_ = clientCommand.Parse(os.Args[2:])
