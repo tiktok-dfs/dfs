@@ -18,7 +18,15 @@ service NameNodeService {
   rpc HeartBeat(HeartBeatReq) returns (HeartBeatResp);
   rpc RegisterDataNode(RegisterDataNodeReq) returns (RegisterDataNodeResp);
   rpc JoinCluster(JoinClusterReq) returns (JoinClusterResp);
+  rpc FindLeader(FindLeaderReq) returns (FindLeaderResp);
   rpc UpdateDataNodeMessage(UpdateDataNodeMessageReq) returns (UpdateDataNodeMessageResp);
+}
+
+message FindLeaderReq {
+}
+
+message FindLeaderResp {
+  string Addr = 1;
 }
 
 message JoinClusterReq {

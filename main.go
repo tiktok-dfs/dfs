@@ -31,7 +31,7 @@ func WorkByCli() {
 
 	nameNodeAddr := dataNodeCommand.String("namenode", "", "NameNode communication port")
 
-	follow := nameNodeCommand.String("follow", "", "join raft cluster")
+	master := nameNodeCommand.Bool("master", false, "start by boostrap")
 
 	clientNameNodePortPtr := clientCommand.String("namenode", "localhost:9000", "NameNode communication port")
 	clientOperationPtr := clientCommand.String("operation", "", "Operation to perform")
@@ -50,50 +50,58 @@ func WorkByCli() {
 		_ = dataNodeCommand.Parse(os.Args[2:])
 		dataNodePortPtr := config.DataNodeCfg.Port
 		dataNodeDataLocationPtr := config.DataNodeCfg.Path
-		datanode.InitializeDataNodeUtil(*nameNodeAddr, int(dataNodePortPtr), dataNodeDataLocationPtr)
+		leader, err := namenode.FindLeader(*nameNodeAddr)
+		if err != nil {
+			panic(err)
+		}
+		datanode.InitializeDataNodeUtil(leader, int(dataNodePortPtr), dataNodeDataLocationPtr)
 
 	case "namenode":
 		_ = nameNodeCommand.Parse(os.Args[2:])
 		nameNodePort := config.NameNodeCfg.Port
 		nameNodeBlockSize := config.NameNodeCfg.BlockSize
 		nameNodeReplicationFactor := config.NameNodeCfg.ReplicationFactor
-		namenode.InitializeNameNodeUtil(*follow, config.RaftCfg.RaftId, int(nameNodePort), int(nameNodeBlockSize), int(nameNodeReplicationFactor))
+		namenode.InitializeNameNodeUtil(*master, config.RaftCfg.RaftId, int(nameNodePort), int(nameNodeBlockSize), int(nameNodeReplicationFactor))
 
 	case "client":
 		_ = clientCommand.Parse(os.Args[2:])
 
+		leader, err := namenode.FindLeader(*clientNameNodePortPtr)
+		if err != nil {
+			panic(err)
+		}
 		if *clientOperationPtr == "put" {
-			status := client.PutHandler(*clientNameNodePortPtr, *clientSourcePathPtr, *clientFilenamePtr)
+			status := client.PutHandler(leader, *clientSourcePathPtr, *clientFilenamePtr)
 			log.Printf("Put status: %t\n", status)
 
 		} else if *clientOperationPtr == "get" {
-			contents, status := client.GetHandler(*clientNameNodePortPtr, *clientFilenamePtr)
+			contents, status := client.GetHandler(leader, *clientFilenamePtr)
 			log.Printf("Get status: %t\n", status)
 			if status {
 				log.Println(contents)
 			}
 
 		} else if *clientOperationPtr == "delete" {
-			status := client.DeleteHandler(*clientNameNodePortPtr, *clientFilenamePtr)
+			status := client.DeleteHandler(leader, *clientFilenamePtr)
 			log.Println("Delete Status:", status)
 
 		} else if *clientOperationPtr == "stat" {
-			resp, err := client.StatHandler(*clientNameNodePortPtr, *clientFilenamePtr)
+			resp, err := client.StatHandler(leader, *clientFilenamePtr)
 			if err != nil {
 				log.Println("Stat Error:", err)
 			}
 			log.Println("Stat Data Message:\n", "FileName:", *clientFilenamePtr, "FileSize:", resp.FileSize, "FileModTime:", resp.ModTime)
 
 		} else if *clientOperationPtr == "mkdir" {
-			status := client.MkdirHandler(*clientNameNodePortPtr, *clientFilenamePtr)
+			status := client.MkdirHandler(leader, *clientFilenamePtr)
 			log.Println("Mkdir Status:", status)
 
 		} else if *clientOperationPtr == "mv" {
-			status := client.RenameHandle(*clientNameNodePortPtr, *clientOldFilenamePtr, *clientNewFilenamePtr)
+			status := client.RenameHandle(leader, *clientOldFilenamePtr, *clientNewFilenamePtr)
 			log.Println("mv Status:", status)
 
 		} else if *clientOperationPtr == "ls" {
-			resp, err := client.ListHandler(*clientNameNodePortPtr, *clientFilenamePtr)
+			resp, err := client.ListHandler(leader, *clientFilenamePtr)
 			if err != nil {
 				log.Println("Ls Error:", err)
 			}

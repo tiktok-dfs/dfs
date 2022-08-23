@@ -540,3 +540,13 @@ func (s *Service) JoinCluster(c context.Context, req *namenode_pb.JoinClusterReq
 	log.Println("future", future)
 	return &namenode_pb.JoinClusterResp{Success: true}, nil
 }
+
+func (s *Service) FindLeader(c context.Context, req *namenode_pb.FindLeaderReq) (*namenode_pb.FindLeaderResp, error) {
+	id, _ := s.RaftNode.LeaderWithID()
+	if id == "" {
+		return &namenode_pb.FindLeaderResp{}, errors.New("cannot find leader")
+	}
+	return &namenode_pb.FindLeaderResp{
+		Addr: string(id),
+	}, nil
+}

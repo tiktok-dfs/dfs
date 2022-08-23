@@ -36,6 +36,7 @@ type NameNodeServiceClient interface {
 	HeartBeat(ctx context.Context, in *HeartBeatReq, opts ...grpc.CallOption) (*HeartBeatResp, error)
 	RegisterDataNode(ctx context.Context, in *RegisterDataNodeReq, opts ...grpc.CallOption) (*RegisterDataNodeResp, error)
 	JoinCluster(ctx context.Context, in *JoinClusterReq, opts ...grpc.CallOption) (*JoinClusterResp, error)
+	FindLeader(ctx context.Context, in *FindLeaderReq, opts ...grpc.CallOption) (*FindLeaderResp, error)
 	UpdateDataNodeMessage(ctx context.Context, in *UpdateDataNodeMessageReq, opts ...grpc.CallOption) (*UpdateDataNodeMessageResp, error)
 }
 
@@ -173,6 +174,15 @@ func (c *nameNodeServiceClient) JoinCluster(ctx context.Context, in *JoinCluster
 	return out, nil
 }
 
+func (c *nameNodeServiceClient) FindLeader(ctx context.Context, in *FindLeaderReq, opts ...grpc.CallOption) (*FindLeaderResp, error) {
+	out := new(FindLeaderResp)
+	err := c.cc.Invoke(ctx, "/namenode_.NameNodeService/FindLeader", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *nameNodeServiceClient) UpdateDataNodeMessage(ctx context.Context, in *UpdateDataNodeMessageReq, opts ...grpc.CallOption) (*UpdateDataNodeMessageResp, error) {
 	out := new(UpdateDataNodeMessageResp)
 	err := c.cc.Invoke(ctx, "/namenode_.NameNodeService/UpdateDataNodeMessage", in, out, opts...)
@@ -200,6 +210,7 @@ type NameNodeServiceServer interface {
 	HeartBeat(context.Context, *HeartBeatReq) (*HeartBeatResp, error)
 	RegisterDataNode(context.Context, *RegisterDataNodeReq) (*RegisterDataNodeResp, error)
 	JoinCluster(context.Context, *JoinClusterReq) (*JoinClusterResp, error)
+	FindLeader(context.Context, *FindLeaderReq) (*FindLeaderResp, error)
 	UpdateDataNodeMessage(context.Context, *UpdateDataNodeMessageReq) (*UpdateDataNodeMessageResp, error)
 	mustEmbedUnimplementedNameNodeServiceServer()
 }
@@ -249,6 +260,9 @@ func (UnimplementedNameNodeServiceServer) RegisterDataNode(context.Context, *Reg
 }
 func (UnimplementedNameNodeServiceServer) JoinCluster(context.Context, *JoinClusterReq) (*JoinClusterResp, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method JoinCluster not implemented")
+}
+func (UnimplementedNameNodeServiceServer) FindLeader(context.Context, *FindLeaderReq) (*FindLeaderResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method FindLeader not implemented")
 }
 func (UnimplementedNameNodeServiceServer) UpdateDataNodeMessage(context.Context, *UpdateDataNodeMessageReq) (*UpdateDataNodeMessageResp, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateDataNodeMessage not implemented")
@@ -518,6 +532,24 @@ func _NameNodeService_JoinCluster_Handler(srv interface{}, ctx context.Context, 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _NameNodeService_FindLeader_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(FindLeaderReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NameNodeServiceServer).FindLeader(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/namenode_.NameNodeService/FindLeader",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NameNodeServiceServer).FindLeader(ctx, req.(*FindLeaderReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _NameNodeService_UpdateDataNodeMessage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(UpdateDataNodeMessageReq)
 	if err := dec(in); err != nil {
@@ -598,6 +630,10 @@ var NameNodeService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "JoinCluster",
 			Handler:    _NameNodeService_JoinCluster_Handler,
+		},
+		{
+			MethodName: "FindLeader",
+			Handler:    _NameNodeService_FindLeader_Handler,
 		},
 		{
 			MethodName: "UpdateDataNodeMessage",
