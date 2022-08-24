@@ -5,8 +5,7 @@ option go_package = 	"go-fs/proto/namenode";
 
 service NameNodeService {
   //EC
-  rpc Put(PutReq) returns (PutResp);
-  rpc Get(GetReq) returns (GetResp);
+  rpc ECAssignDataNode(ECAssignDataNodeReq) returns (ECAssignDataNodeResp);
 
   rpc GetBlockSize(GetBlockSizeRequest) returns (GetBlockSizeResponse);
   rpc ReadData(ReadRequst) returns (ReadResponse);
@@ -26,21 +25,13 @@ service NameNodeService {
   rpc UpdateDataNodeMessage(UpdateDataNodeMessageReq) returns (UpdateDataNodeMessageResp);
 }
 
-message PutReq {
-  string fileName = 1;
-  uint64 fileSize = 2;
+message ECAssignDataNodeReq {
+  string filename = 1;
+  int64 datanodeNumber = 2;
 }
 
-message PutResp {
-  repeated NameNodeMetaData nameNodeMetaDataList = 1;
-}
-
-message GetReq {
-  string fileName = 1;
-}
-
-message GetResp {
-  repeated NameNodeMetaData nameNodeMetaDataList = 1;
+message ECAssignDataNodeResp {
+  repeated NameNodeMetaData NameNodeMetaData = 1;
 }
 
 message FindLeaderReq {

@@ -148,3 +148,28 @@ func (tree *DirTree) Rename(node *DirTreeNode, old string, new string) {
 	newSplit := strings.Split(new, "/")
 	dirTreeNode.Name = newSplit[len(newSplit)-2]
 }
+
+func (tree *DirTree) Delete(node *DirTreeNode, path string) {
+	split := strings.Split(path, "/")
+	i := split[1 : len(split)-1]
+	if len(i) == 1 {
+		for k, v := range node.Children {
+			if v.Name == i[0] {
+				node.Children = removeElementFromSlice(node.Children, k)
+			}
+		}
+		return
+	}
+	for _, s := range i[:len(i)-1] {
+		node = tree.Seek(node, s)
+	}
+	for k, c := range node.Children {
+		if c.Name == i[len(i)-1] {
+			node.Children = removeElementFromSlice(node.Children, k)
+		}
+	}
+}
+
+func removeElementFromSlice(elements []*DirTreeNode, index int) []*DirTreeNode {
+	return append(elements[:index], elements[index+1:]...)
+}

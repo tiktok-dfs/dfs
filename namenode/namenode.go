@@ -200,13 +200,8 @@ func (nn *Service) WriteData(ctx context.Context, req *namenode_pb.WriteRequest)
 
 	nn.FileNameToBlocks[req.FileName] = []string{}
 
-	if !strings.HasPrefix(req.FileName, "/") {
-		req.FileName = "/" + req.FileName
-	}
-	if !strings.HasSuffix(req.FileName, "/") {
-		req.FileName = req.FileName + "/"
-	}
-	insert := nn.DirTree.Insert(req.FileName)
+	filename := util.ModPath(req.FileName)
+	insert := nn.DirTree.Insert(filename)
 	if !insert {
 		log.Println("请确认你创建的文件目录是否存在")
 		return &namenode_pb.WriteResponse{}, nil
@@ -216,7 +211,7 @@ func (nn *Service) WriteData(ctx context.Context, req *namenode_pb.WriteRequest)
 	/*numberOfBlocksToAllocate := uint64(math.Ceil(float64(req.FileSize) / float64(nn.BlockSize)))
 	log.Println("分配块的数量:", numberOfBlocksToAllocate)
 	*/
-	nameNodeMetaDataList := nn.allocateBlocks(req.FileName, req.BlockNumber)
+	nameNodeMetaDataList := nn.allocateBlocks(filename, req.BlockNumber)
 	log.Println("分配块的信息：", nameNodeMetaDataList)
 
 	for _, nnmd := range nameNodeMetaDataList {
@@ -368,6 +363,8 @@ func (nameNode *Service) ReDistributeData(request *ReDistributeDataRequest, repl
 
 func (s *Service) DeleteData(c context.Context, req *namenode_pb.DeleteDataReq) (*namenode_pb.DeleteDataResp, error) {
 	var res namenode_pb.DeleteDataResp
+	s.DirTree.Delete(s.DirTree.Root, req.FileName)
+	log.Println("删除文件后目录树为:", s.DirTree.LookAll())
 
 	_, ok := s.FileNameToBlocks[req.FileName]
 	if !ok {
@@ -550,5 +547,33 @@ func (s *Service) FindLeader(c context.Context, req *namenode_pb.FindLeaderReq) 
 	}
 	return &namenode_pb.FindLeaderResp{
 		Addr: string(id),
+	}, nil
+}
+
+func (s *Service) ECAssignDataNode(c context.Context, req *namenode_pb.ECAssignDataNodeReq) (*namenode_pb.ECAssignDataNodeResp, error) {
+	s.FileNameToBlocks[req.Filename] = []string{}
+	var metaDataList []*namenode_pb.NameNodeMetaData
+	var dataNodesAvailable []int64
+	for k, _ := range s.IdToDataNodes {
+		dataNodesAvailable = append(dataNodesAvailable, k)
+	}
+	for i := 0; i < int(req.DatanodeNumber); i++ {
+		blockId := uuid.New().String()
+		s.FileNameToBlocks[req.Filename] = append(s.FileNameToBlocks[req.Filename], blockId)
+		dataNodes := s.assignDataNodes(blockId, dataNodesAvailable, 1)
+		var blockAddresses []*namenode_pb.DataNodeInstance
+		for _, id := range dataNodes {
+			blockAddresses = append(blockAddresses, &namenode_pb.DataNodeInstance{
+				Host:        s.IdToDataNodes[id].Host,
+				ServicePort: s.IdToDataNodes[id].ServicePort,
+			})
+		}
+		metaDataList = append(metaDataList, &namenode_pb.NameNodeMetaData{
+			BlockId:        blockId,
+			BlockAddresses: blockAddresses,
+		})
+	}
+	return &namenode_pb.ECAssignDataNodeResp{
+		NameNodeMetaData: metaDataList,
 	}, nil
 }

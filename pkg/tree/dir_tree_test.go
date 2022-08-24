@@ -1,6 +1,7 @@
 package tree
 
 import (
+	"fmt"
 	"testing"
 )
 
@@ -44,6 +45,18 @@ func TestInsert(t *testing.T) {
 	t.Log(tree.FindSubDir("/tds/"))
 	t.Log(tree.FindSubDir("/tds/hello/"))
 	t.Log(tree.FindSubDir("/tds/test/"))
+}
+
+func TestDirTree_Delete(t *testing.T) {
+	tree := setup()
+	//插入目录+文件
+	tree.Insert("/first.txt/")
+	tree.Insert("/tds/hello.txt/")
+	tree.Insert("/tds/hdfs.txt/")
+	tree.Insert("/tds/hello/hello.txt/")
+	tree.Delete(tree.Root, "/tds/hello.txt/")
+	dir := tree.FindSubDir("/tds/")
+	fmt.Println(dir)
 }
 
 // TestFindSubDir 结果应为 [5, 6, 7]

@@ -67,6 +67,27 @@ func ListHandler(nameNodeAddress string, parentPath string) (*client.ListResp, e
 	return client.List(rpcClient, parentPath)
 }
 
+func PutByEcHandler(nameNodeAddress string, sourceFilePath string, destFilePath string) bool {
+	rpcClient, err := initializeClientUtil(nameNodeAddress)
+	util.Check(err)
+	defer rpcClient.Close()
+	return client.PutByEc(rpcClient, sourceFilePath, destFilePath)
+}
+
+func GetByEcHandler(nameNodeAddress string, filename string) (string, bool) {
+	rpcClient, err := initializeClientUtil(nameNodeAddress)
+	util.Check(err)
+	defer rpcClient.Close()
+	return client.GetByEc(rpcClient, filename)
+}
+
+func RecoverDataHandler(nameNodeAddress string, filename string, deadDataNodeAddr string) (string, bool) {
+	rpcClient, err := initializeClientUtil(nameNodeAddress)
+	util.Check(err)
+	defer rpcClient.Close()
+	return client.RecoverDataByEC(rpcClient, filename, deadDataNodeAddr)
+}
+
 func initializeClientUtil(nameNodeAddress string) (*grpc.ClientConn, error) {
 	s := new(Service)
 	go listenLeader(s, nameNodeAddress)

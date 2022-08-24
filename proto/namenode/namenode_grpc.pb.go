@@ -23,8 +23,7 @@ const _ = grpc.SupportPackageIsVersion7
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type NameNodeServiceClient interface {
 	//EC
-	Put(ctx context.Context, in *PutReq, opts ...grpc.CallOption) (*PutResp, error)
-	Get(ctx context.Context, in *GetReq, opts ...grpc.CallOption) (*GetResp, error)
+	ECAssignDataNode(ctx context.Context, in *ECAssignDataNodeReq, opts ...grpc.CallOption) (*ECAssignDataNodeResp, error)
 	GetBlockSize(ctx context.Context, in *GetBlockSizeRequest, opts ...grpc.CallOption) (*GetBlockSizeResponse, error)
 	ReadData(ctx context.Context, in *ReadRequst, opts ...grpc.CallOption) (*ReadResponse, error)
 	WriteData(ctx context.Context, in *WriteRequest, opts ...grpc.CallOption) (*WriteResponse, error)
@@ -51,18 +50,9 @@ func NewNameNodeServiceClient(cc grpc.ClientConnInterface) NameNodeServiceClient
 	return &nameNodeServiceClient{cc}
 }
 
-func (c *nameNodeServiceClient) Put(ctx context.Context, in *PutReq, opts ...grpc.CallOption) (*PutResp, error) {
-	out := new(PutResp)
-	err := c.cc.Invoke(ctx, "/namenode_.NameNodeService/Put", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *nameNodeServiceClient) Get(ctx context.Context, in *GetReq, opts ...grpc.CallOption) (*GetResp, error) {
-	out := new(GetResp)
-	err := c.cc.Invoke(ctx, "/namenode_.NameNodeService/Get", in, out, opts...)
+func (c *nameNodeServiceClient) ECAssignDataNode(ctx context.Context, in *ECAssignDataNodeReq, opts ...grpc.CallOption) (*ECAssignDataNodeResp, error) {
+	out := new(ECAssignDataNodeResp)
+	err := c.cc.Invoke(ctx, "/namenode_.NameNodeService/ECAssignDataNode", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -218,8 +208,7 @@ func (c *nameNodeServiceClient) UpdateDataNodeMessage(ctx context.Context, in *U
 // for forward compatibility
 type NameNodeServiceServer interface {
 	//EC
-	Put(context.Context, *PutReq) (*PutResp, error)
-	Get(context.Context, *GetReq) (*GetResp, error)
+	ECAssignDataNode(context.Context, *ECAssignDataNodeReq) (*ECAssignDataNodeResp, error)
 	GetBlockSize(context.Context, *GetBlockSizeRequest) (*GetBlockSizeResponse, error)
 	ReadData(context.Context, *ReadRequst) (*ReadResponse, error)
 	WriteData(context.Context, *WriteRequest) (*WriteResponse, error)
@@ -243,11 +232,8 @@ type NameNodeServiceServer interface {
 type UnimplementedNameNodeServiceServer struct {
 }
 
-func (UnimplementedNameNodeServiceServer) Put(context.Context, *PutReq) (*PutResp, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Put not implemented")
-}
-func (UnimplementedNameNodeServiceServer) Get(context.Context, *GetReq) (*GetResp, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Get not implemented")
+func (UnimplementedNameNodeServiceServer) ECAssignDataNode(context.Context, *ECAssignDataNodeReq) (*ECAssignDataNodeResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ECAssignDataNode not implemented")
 }
 func (UnimplementedNameNodeServiceServer) GetBlockSize(context.Context, *GetBlockSizeRequest) (*GetBlockSizeResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetBlockSize not implemented")
@@ -310,38 +296,20 @@ func RegisterNameNodeServiceServer(s grpc.ServiceRegistrar, srv NameNodeServiceS
 	s.RegisterService(&NameNodeService_ServiceDesc, srv)
 }
 
-func _NameNodeService_Put_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(PutReq)
+func _NameNodeService_ECAssignDataNode_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ECAssignDataNodeReq)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(NameNodeServiceServer).Put(ctx, in)
+		return srv.(NameNodeServiceServer).ECAssignDataNode(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/namenode_.NameNodeService/Put",
+		FullMethod: "/namenode_.NameNodeService/ECAssignDataNode",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(NameNodeServiceServer).Put(ctx, req.(*PutReq))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _NameNodeService_Get_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetReq)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(NameNodeServiceServer).Get(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/namenode_.NameNodeService/Get",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(NameNodeServiceServer).Get(ctx, req.(*GetReq))
+		return srv.(NameNodeServiceServer).ECAssignDataNode(ctx, req.(*ECAssignDataNodeReq))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -642,12 +610,8 @@ var NameNodeService_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*NameNodeServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "Put",
-			Handler:    _NameNodeService_Put_Handler,
-		},
-		{
-			MethodName: "Get",
-			Handler:    _NameNodeService_Get_Handler,
+			MethodName: "ECAssignDataNode",
+			Handler:    _NameNodeService_ECAssignDataNode_Handler,
 		},
 		{
 			MethodName: "GetBlockSize",

@@ -47,6 +47,8 @@ func WorkByCli() {
 	clientFilenamePtr := clientCommand.String("filename", "", "File name")
 	clientOldFilenamePtr := clientCommand.String("old", "", "Old File Name")
 	clientNewFilenamePtr := clientCommand.String("new", "", "New File Name")
+	ec := clientCommand.Bool("ec", false, "put data by EC")
+	dead := clientCommand.String("dead", "", "dead datanode addr")
 
 	if len(os.Args) < 2 {
 		log.Println("sub-command is required")
@@ -120,6 +122,23 @@ func WorkByCli() {
 				log.Println("Ls Error:", err)
 			}
 			log.Println("ls Data:", resp)
+		} else if *ec {
+			if *clientOperationPtr == "put" {
+				status := client.PutByEcHandler(*clientNameNodePortPtr, *clientSourcePathPtr, *clientFilenamePtr)
+				log.Printf("Put status: %t\n", status)
+			} else if *clientOperationPtr == "get" {
+				contents, status := client.GetByEcHandler(*clientNameNodePortPtr, *clientFilenamePtr)
+				log.Printf("Get status: %t\n", status)
+				if status {
+					log.Println(contents)
+				}
+			} else if *clientOperationPtr == "recover" {
+				contents, status := client.RecoverDataHandler(*clientNameNodePortPtr, *clientFilenamePtr, *dead)
+				log.Printf("Recover status: %t\n", status)
+				if status {
+					log.Println(contents)
+				}
+			}
 		}
 	}
 }

@@ -24,6 +24,9 @@ import (
 
 func InitializeDataNodeUtil(host, nameNodeAddr string, serverPort int, dataLocation string) {
 	dataNodeInstance := new(datanode.Server)
+	if !strings.HasSuffix(dataLocation, "/") {
+		dataLocation = dataLocation + "/"
+	}
 	dataNodeInstance.DataDirectory = dataLocation
 	dataNodeInstance.ServicePort = uint32(serverPort)
 
