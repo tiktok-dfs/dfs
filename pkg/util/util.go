@@ -68,6 +68,9 @@ func GetPrePath(filename string) string {
 	if strings.HasPrefix(filename, "/") {
 		filename = filename[len("/"):]
 	}
+	if strings.HasSuffix(filename, "/") {
+		filename = filename[:len(filename)-1-len("/S")]
+	}
 	split := strings.Split(filename, "/")
 	res := ""
 	for i, s := range split {

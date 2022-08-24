@@ -99,7 +99,7 @@ func checkDataNode(instance *namenode.Service) {
 		for k, v := range instance.IdToDataNodes {
 			addr := v.Host + ":" + v.ServicePort
 			lastHeartBeatTime := instance.DataNodeHeartBeat[addr]
-			if lastHeartBeatTime.Add(time.Second*5).Unix() < time.Now().Unix() {
+			if lastHeartBeatTime.Add(time.Second*8).Unix() < time.Now().Unix() {
 				var reply bool
 				reDistributeError := instance.ReDistributeData(&namenode.ReDistributeDataRequest{DataNodeUri: addr}, &reply)
 				util.Check(reDistributeError)
