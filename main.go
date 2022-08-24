@@ -86,43 +86,45 @@ func WorkByCli() {
 	case "client":
 		_ = clientCommand.Parse(os.Args[2:])
 
-		if *clientOperationPtr == "put" {
-			status := client.PutHandler(*clientNameNodePortPtr, *clientSourcePathPtr, *clientFilenamePtr)
-			log.Printf("Put status: %t\n", status)
+		if !*ec {
+			if *clientOperationPtr == "put" {
+				status := client.PutHandler(*clientNameNodePortPtr, *clientSourcePathPtr, *clientFilenamePtr)
+				log.Printf("Put status: %t\n", status)
 
-		} else if *clientOperationPtr == "get" {
-			contents, status := client.GetHandler(*clientNameNodePortPtr, *clientFilenamePtr)
-			log.Printf("Get status: %t\n", status)
-			if status {
-				log.Println(contents)
+			} else if *clientOperationPtr == "get" {
+				contents, status := client.GetHandler(*clientNameNodePortPtr, *clientFilenamePtr)
+				log.Printf("Get status: %t\n", status)
+				if status {
+					log.Println(contents)
+				}
+
+			} else if *clientOperationPtr == "delete" {
+				status := client.DeleteHandler(*clientNameNodePortPtr, *clientFilenamePtr)
+				log.Println("Delete Status:", status)
+
+			} else if *clientOperationPtr == "stat" {
+				resp, err := client.StatHandler(*clientNameNodePortPtr, *clientFilenamePtr)
+				if err != nil {
+					log.Println("Stat Error:", err)
+				}
+				log.Println("Stat Data Message:\n", "FileName:", *clientFilenamePtr, "FileSize:", resp.FileSize, "FileModTime:", resp.ModTime)
+
+			} else if *clientOperationPtr == "mkdir" {
+				status := client.MkdirHandler(*clientNameNodePortPtr, *clientFilenamePtr)
+				log.Println("Mkdir Status:", status)
+
+			} else if *clientOperationPtr == "mv" {
+				status := client.RenameHandle(*clientNameNodePortPtr, *clientOldFilenamePtr, *clientNewFilenamePtr)
+				log.Println("mv Status:", status)
+
+			} else if *clientOperationPtr == "ls" {
+				resp, err := client.ListHandler(*clientNameNodePortPtr, *clientFilenamePtr)
+				if err != nil {
+					log.Println("Ls Error:", err)
+				}
+				log.Println("ls Data:", resp)
 			}
-
-		} else if *clientOperationPtr == "delete" {
-			status := client.DeleteHandler(*clientNameNodePortPtr, *clientFilenamePtr)
-			log.Println("Delete Status:", status)
-
-		} else if *clientOperationPtr == "stat" {
-			resp, err := client.StatHandler(*clientNameNodePortPtr, *clientFilenamePtr)
-			if err != nil {
-				log.Println("Stat Error:", err)
-			}
-			log.Println("Stat Data Message:\n", "FileName:", *clientFilenamePtr, "FileSize:", resp.FileSize, "FileModTime:", resp.ModTime)
-
-		} else if *clientOperationPtr == "mkdir" {
-			status := client.MkdirHandler(*clientNameNodePortPtr, *clientFilenamePtr)
-			log.Println("Mkdir Status:", status)
-
-		} else if *clientOperationPtr == "mv" {
-			status := client.RenameHandle(*clientNameNodePortPtr, *clientOldFilenamePtr, *clientNewFilenamePtr)
-			log.Println("mv Status:", status)
-
-		} else if *clientOperationPtr == "ls" {
-			resp, err := client.ListHandler(*clientNameNodePortPtr, *clientFilenamePtr)
-			if err != nil {
-				log.Println("Ls Error:", err)
-			}
-			log.Println("ls Data:", resp)
-		} else if *ec {
+		} else {
 			if *clientOperationPtr == "put" {
 				status := client.PutByEcHandler(*clientNameNodePortPtr, *clientSourcePathPtr, *clientFilenamePtr)
 				log.Printf("PutByEc status: %t\n", status)

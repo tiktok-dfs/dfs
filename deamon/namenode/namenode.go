@@ -118,7 +118,11 @@ func newRaft(master bool, follow, myID, myAddress string, fsm raft.FSM) (*raft.R
 	baseDir := filepath.Join(config.RaftCfg.RaftDataDir, myID)
 
 	//重启的时候如果存在该文件夹会报错，需要注意是否要删除文件夹再重新运行，为了考虑数据安全问题，未在代码里强制删除
-	err := os.MkdirAll(baseDir, 0755)
+	err := os.Remove(baseDir)
+	if err != nil {
+
+	}
+	err = os.MkdirAll(baseDir, 0755)
 	if err != nil {
 		return nil, nil, err
 	}
