@@ -125,10 +125,10 @@ func WorkByCli() {
 		} else if *ec {
 			if *clientOperationPtr == "put" {
 				status := client.PutByEcHandler(*clientNameNodePortPtr, *clientSourcePathPtr, *clientFilenamePtr)
-				log.Printf("Put status: %t\n", status)
+				log.Printf("PutByEc status: %t\n", status)
 			} else if *clientOperationPtr == "get" {
 				contents, status := client.GetByEcHandler(*clientNameNodePortPtr, *clientFilenamePtr)
-				log.Printf("Get status: %t\n", status)
+				log.Printf("GetByEc status: %t\n", status)
 				if status {
 					log.Println(contents)
 				}
