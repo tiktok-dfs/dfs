@@ -12,7 +12,6 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"log"
-	"math"
 	"net"
 	"sort"
 	"strings"
@@ -214,10 +213,10 @@ func (nn *Service) WriteData(ctx context.Context, req *namenode_pb.WriteRequest)
 	}
 	log.Println("插入后目录树为", nn.DirTree.LookAll())
 
-	numberOfBlocksToAllocate := uint64(math.Ceil(float64(req.FileSize) / float64(nn.BlockSize)))
+	/*numberOfBlocksToAllocate := uint64(math.Ceil(float64(req.FileSize) / float64(nn.BlockSize)))
 	log.Println("分配块的数量:", numberOfBlocksToAllocate)
-
-	nameNodeMetaDataList := nn.allocateBlocks(req.FileName, numberOfBlocksToAllocate)
+	*/
+	nameNodeMetaDataList := nn.allocateBlocks(req.FileName, req.BlockNumber)
 	log.Println("分配块的信息：", nameNodeMetaDataList)
 
 	for _, nnmd := range nameNodeMetaDataList {
@@ -230,7 +229,7 @@ func (nameNode *Service) allocateBlocks(fileName string, numberOfBlocks uint64) 
 	//创建写入文件的 slot
 	nameNode.FileNameToBlocks[fileName] = []string{}
 
-	// 获取所有 data1 nodes 的id
+	// 获取所有 data nodes 的id
 	var dataNodesAvailable []int64
 	for k, _ := range nameNode.IdToDataNodes {
 		dataNodesAvailable = append(dataNodesAvailable, k)

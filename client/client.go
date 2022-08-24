@@ -10,6 +10,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"log"
+	"math"
 	"os"
 	"strings"
 	"time"
@@ -31,6 +32,14 @@ func Put(nameNodeConn *grpc.ClientConn, sourceFilePath string, destFilePath stri
 
 	// -------------- Step1:获取文件大小 ---------------
 	fileSizeHandler, err := os.Stat(sourceFilePath)
+
+	var blockSize uint64
+	namenodeGetBlockSizeRequest := &namenode_pb.GetBlockSizeRequest{Request: true}
+	blockSizeResponse, err := nameNodeInstance.GetBlockSize(context.Background(), namenodeGetBlockSizeRequest)
+	util.Check(err)
+	log.Println("NameNode里获取到的块大小：", blockSizeResponse.BlockSize)
+	blockSize = blockSizeResponse.BlockSize
+
 	util.Check(err)
 
 	// 拿到size为了给文件分片(block), 每个block会被分配到不同的data node中
@@ -39,24 +48,20 @@ func Put(nameNodeConn *grpc.ClientConn, sourceFilePath string, destFilePath stri
 	fileName := destFilePath
 	util.Check(err)
 
+	numberOfBlocksToAllocate := uint64(math.Ceil(float64(fileSize) / float64(blockSize)))
+	log.Println("分配块的数量:", numberOfBlocksToAllocate)
+
 	//分割filename
-	namenodeWriteRequest := &namenode_pb.WriteRequest{FileName: fileName, FileSize: fileSize}
+	namenodeWriteRequest := &namenode_pb.WriteRequest{
+		FileName:    fileName,
+		BlockNumber: numberOfBlocksToAllocate,
+	}
 
 	// ---------------- Step2: 从 namenode 获取初始化的元数据 ----------------
 	// namenode 的 writeData并不是真的写入, 返回的reply包含每一个文件的block应该被写入的data node 的地址
 	writeResponse, err := nameNodeInstance.WriteData(context.Background(), namenodeWriteRequest)
 	util.Check(err)
 	log.Println("NameNode里的写数据信息：", writeResponse.NameNodeMetaDataList)
-
-	var blockSize uint64
-
-	namenodeGetBlockSizeRequest := &namenode_pb.GetBlockSizeRequest{Request: true}
-
-	blockSizeResponse, err := nameNodeInstance.GetBlockSize(context.Background(), namenodeGetBlockSizeRequest)
-	util.Check(err)
-	log.Println("NameNode里获取到的块大小：", blockSizeResponse.BlockSize)
-
-	blockSize = blockSizeResponse.BlockSize
 
 	// ---------------- Step3: 开始读取文件，分片后发送给 datanode ----------------
 	fileHandler, err := os.Open(sourceFilePath)
@@ -96,8 +101,8 @@ func Put(nameNodeConn *grpc.ClientConn, sourceFilePath string, destFilePath stri
 		request := dn.PutReq{
 			Path:             sourceFilePath,
 			BlockId:          blockId,
-			Data:             string(dataStagingBytes), // 负载的数据分片
-			ReplicationNodes: datanodes,                // 需要往后传递，用于备份的 datanode 列表
+			Data:             dataStagingBytes, // 负载的数据分片
+			ReplicationNodes: datanodes,        // 需要往后传递，用于备份的 datanode 列表
 		}
 		// 写入数据
 		log.Println("已经写入的BLockId为：", blockId)
@@ -158,7 +163,7 @@ func Get(nameNodeConn *grpc.ClientConn, sourceFilePath string) (fileContents str
 			resp, rpcErr := dn.NewDataNodeClient(dataNodeInstance).Get(context.Background(), &request)
 			util.Check(rpcErr)
 			// 追加内容
-			fileContents += resp.Data
+			fileContents += string(resp.Data)
 			// 读取成功后, 将标志位置为true, 此block不再获取
 			blockFetchStatus = true
 			break

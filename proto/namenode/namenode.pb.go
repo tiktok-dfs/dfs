@@ -20,6 +20,202 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type PutReq struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	FileName string `protobuf:"bytes,1,opt,name=fileName,proto3" json:"fileName,omitempty"`
+	FileSize uint64 `protobuf:"varint,2,opt,name=fileSize,proto3" json:"fileSize,omitempty"`
+}
+
+func (x *PutReq) Reset() {
+	*x = PutReq{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_proto_namenode_namenode_proto_msgTypes[0]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *PutReq) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PutReq) ProtoMessage() {}
+
+func (x *PutReq) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_namenode_namenode_proto_msgTypes[0]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PutReq.ProtoReflect.Descriptor instead.
+func (*PutReq) Descriptor() ([]byte, []int) {
+	return file_proto_namenode_namenode_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *PutReq) GetFileName() string {
+	if x != nil {
+		return x.FileName
+	}
+	return ""
+}
+
+func (x *PutReq) GetFileSize() uint64 {
+	if x != nil {
+		return x.FileSize
+	}
+	return 0
+}
+
+type PutResp struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	NameNodeMetaDataList []*NameNodeMetaData `protobuf:"bytes,1,rep,name=nameNodeMetaDataList,proto3" json:"nameNodeMetaDataList,omitempty"`
+}
+
+func (x *PutResp) Reset() {
+	*x = PutResp{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_proto_namenode_namenode_proto_msgTypes[1]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *PutResp) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PutResp) ProtoMessage() {}
+
+func (x *PutResp) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_namenode_namenode_proto_msgTypes[1]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PutResp.ProtoReflect.Descriptor instead.
+func (*PutResp) Descriptor() ([]byte, []int) {
+	return file_proto_namenode_namenode_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *PutResp) GetNameNodeMetaDataList() []*NameNodeMetaData {
+	if x != nil {
+		return x.NameNodeMetaDataList
+	}
+	return nil
+}
+
+type GetReq struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	FileName string `protobuf:"bytes,1,opt,name=fileName,proto3" json:"fileName,omitempty"`
+}
+
+func (x *GetReq) Reset() {
+	*x = GetReq{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_proto_namenode_namenode_proto_msgTypes[2]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *GetReq) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetReq) ProtoMessage() {}
+
+func (x *GetReq) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_namenode_namenode_proto_msgTypes[2]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetReq.ProtoReflect.Descriptor instead.
+func (*GetReq) Descriptor() ([]byte, []int) {
+	return file_proto_namenode_namenode_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *GetReq) GetFileName() string {
+	if x != nil {
+		return x.FileName
+	}
+	return ""
+}
+
+type GetResp struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	NameNodeMetaDataList []*NameNodeMetaData `protobuf:"bytes,1,rep,name=nameNodeMetaDataList,proto3" json:"nameNodeMetaDataList,omitempty"`
+}
+
+func (x *GetResp) Reset() {
+	*x = GetResp{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_proto_namenode_namenode_proto_msgTypes[3]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *GetResp) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetResp) ProtoMessage() {}
+
+func (x *GetResp) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_namenode_namenode_proto_msgTypes[3]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetResp.ProtoReflect.Descriptor instead.
+func (*GetResp) Descriptor() ([]byte, []int) {
+	return file_proto_namenode_namenode_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *GetResp) GetNameNodeMetaDataList() []*NameNodeMetaData {
+	if x != nil {
+		return x.NameNodeMetaDataList
+	}
+	return nil
+}
+
 type FindLeaderReq struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -29,7 +225,7 @@ type FindLeaderReq struct {
 func (x *FindLeaderReq) Reset() {
 	*x = FindLeaderReq{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_namenode_namenode_proto_msgTypes[0]
+		mi := &file_proto_namenode_namenode_proto_msgTypes[4]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -42,7 +238,7 @@ func (x *FindLeaderReq) String() string {
 func (*FindLeaderReq) ProtoMessage() {}
 
 func (x *FindLeaderReq) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_namenode_namenode_proto_msgTypes[0]
+	mi := &file_proto_namenode_namenode_proto_msgTypes[4]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -55,7 +251,7 @@ func (x *FindLeaderReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FindLeaderReq.ProtoReflect.Descriptor instead.
 func (*FindLeaderReq) Descriptor() ([]byte, []int) {
-	return file_proto_namenode_namenode_proto_rawDescGZIP(), []int{0}
+	return file_proto_namenode_namenode_proto_rawDescGZIP(), []int{4}
 }
 
 type FindLeaderResp struct {
@@ -69,7 +265,7 @@ type FindLeaderResp struct {
 func (x *FindLeaderResp) Reset() {
 	*x = FindLeaderResp{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_namenode_namenode_proto_msgTypes[1]
+		mi := &file_proto_namenode_namenode_proto_msgTypes[5]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -82,7 +278,7 @@ func (x *FindLeaderResp) String() string {
 func (*FindLeaderResp) ProtoMessage() {}
 
 func (x *FindLeaderResp) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_namenode_namenode_proto_msgTypes[1]
+	mi := &file_proto_namenode_namenode_proto_msgTypes[5]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -95,7 +291,7 @@ func (x *FindLeaderResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FindLeaderResp.ProtoReflect.Descriptor instead.
 func (*FindLeaderResp) Descriptor() ([]byte, []int) {
-	return file_proto_namenode_namenode_proto_rawDescGZIP(), []int{1}
+	return file_proto_namenode_namenode_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *FindLeaderResp) GetAddr() string {
@@ -118,7 +314,7 @@ type JoinClusterReq struct {
 func (x *JoinClusterReq) Reset() {
 	*x = JoinClusterReq{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_namenode_namenode_proto_msgTypes[2]
+		mi := &file_proto_namenode_namenode_proto_msgTypes[6]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -131,7 +327,7 @@ func (x *JoinClusterReq) String() string {
 func (*JoinClusterReq) ProtoMessage() {}
 
 func (x *JoinClusterReq) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_namenode_namenode_proto_msgTypes[2]
+	mi := &file_proto_namenode_namenode_proto_msgTypes[6]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -144,7 +340,7 @@ func (x *JoinClusterReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use JoinClusterReq.ProtoReflect.Descriptor instead.
 func (*JoinClusterReq) Descriptor() ([]byte, []int) {
-	return file_proto_namenode_namenode_proto_rawDescGZIP(), []int{2}
+	return file_proto_namenode_namenode_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *JoinClusterReq) GetId() string {
@@ -179,7 +375,7 @@ type JoinClusterResp struct {
 func (x *JoinClusterResp) Reset() {
 	*x = JoinClusterResp{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_namenode_namenode_proto_msgTypes[3]
+		mi := &file_proto_namenode_namenode_proto_msgTypes[7]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -192,7 +388,7 @@ func (x *JoinClusterResp) String() string {
 func (*JoinClusterResp) ProtoMessage() {}
 
 func (x *JoinClusterResp) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_namenode_namenode_proto_msgTypes[3]
+	mi := &file_proto_namenode_namenode_proto_msgTypes[7]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -205,7 +401,7 @@ func (x *JoinClusterResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use JoinClusterResp.ProtoReflect.Descriptor instead.
 func (*JoinClusterResp) Descriptor() ([]byte, []int) {
-	return file_proto_namenode_namenode_proto_rawDescGZIP(), []int{3}
+	return file_proto_namenode_namenode_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *JoinClusterResp) GetSuccess() bool {
@@ -231,7 +427,7 @@ type UpdateDataNodeMessageReq struct {
 func (x *UpdateDataNodeMessageReq) Reset() {
 	*x = UpdateDataNodeMessageReq{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_namenode_namenode_proto_msgTypes[4]
+		mi := &file_proto_namenode_namenode_proto_msgTypes[8]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -244,7 +440,7 @@ func (x *UpdateDataNodeMessageReq) String() string {
 func (*UpdateDataNodeMessageReq) ProtoMessage() {}
 
 func (x *UpdateDataNodeMessageReq) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_namenode_namenode_proto_msgTypes[4]
+	mi := &file_proto_namenode_namenode_proto_msgTypes[8]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -257,7 +453,7 @@ func (x *UpdateDataNodeMessageReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateDataNodeMessageReq.ProtoReflect.Descriptor instead.
 func (*UpdateDataNodeMessageReq) Descriptor() ([]byte, []int) {
-	return file_proto_namenode_namenode_proto_rawDescGZIP(), []int{4}
+	return file_proto_namenode_namenode_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *UpdateDataNodeMessageReq) GetAddr() string {
@@ -313,7 +509,7 @@ type UpdateDataNodeMessageResp struct {
 func (x *UpdateDataNodeMessageResp) Reset() {
 	*x = UpdateDataNodeMessageResp{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_namenode_namenode_proto_msgTypes[5]
+		mi := &file_proto_namenode_namenode_proto_msgTypes[9]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -326,7 +522,7 @@ func (x *UpdateDataNodeMessageResp) String() string {
 func (*UpdateDataNodeMessageResp) ProtoMessage() {}
 
 func (x *UpdateDataNodeMessageResp) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_namenode_namenode_proto_msgTypes[5]
+	mi := &file_proto_namenode_namenode_proto_msgTypes[9]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -339,7 +535,7 @@ func (x *UpdateDataNodeMessageResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateDataNodeMessageResp.ProtoReflect.Descriptor instead.
 func (*UpdateDataNodeMessageResp) Descriptor() ([]byte, []int) {
-	return file_proto_namenode_namenode_proto_rawDescGZIP(), []int{5}
+	return file_proto_namenode_namenode_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *UpdateDataNodeMessageResp) GetSuccess() bool {
@@ -365,7 +561,7 @@ type RegisterDataNodeReq struct {
 func (x *RegisterDataNodeReq) Reset() {
 	*x = RegisterDataNodeReq{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_namenode_namenode_proto_msgTypes[6]
+		mi := &file_proto_namenode_namenode_proto_msgTypes[10]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -378,7 +574,7 @@ func (x *RegisterDataNodeReq) String() string {
 func (*RegisterDataNodeReq) ProtoMessage() {}
 
 func (x *RegisterDataNodeReq) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_namenode_namenode_proto_msgTypes[6]
+	mi := &file_proto_namenode_namenode_proto_msgTypes[10]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -391,7 +587,7 @@ func (x *RegisterDataNodeReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RegisterDataNodeReq.ProtoReflect.Descriptor instead.
 func (*RegisterDataNodeReq) Descriptor() ([]byte, []int) {
-	return file_proto_namenode_namenode_proto_rawDescGZIP(), []int{6}
+	return file_proto_namenode_namenode_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *RegisterDataNodeReq) GetAddr() string {
@@ -447,7 +643,7 @@ type RegisterDataNodeResp struct {
 func (x *RegisterDataNodeResp) Reset() {
 	*x = RegisterDataNodeResp{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_namenode_namenode_proto_msgTypes[7]
+		mi := &file_proto_namenode_namenode_proto_msgTypes[11]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -460,7 +656,7 @@ func (x *RegisterDataNodeResp) String() string {
 func (*RegisterDataNodeResp) ProtoMessage() {}
 
 func (x *RegisterDataNodeResp) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_namenode_namenode_proto_msgTypes[7]
+	mi := &file_proto_namenode_namenode_proto_msgTypes[11]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -473,7 +669,7 @@ func (x *RegisterDataNodeResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RegisterDataNodeResp.ProtoReflect.Descriptor instead.
 func (*RegisterDataNodeResp) Descriptor() ([]byte, []int) {
-	return file_proto_namenode_namenode_proto_rawDescGZIP(), []int{7}
+	return file_proto_namenode_namenode_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *RegisterDataNodeResp) GetSuccess() bool {
@@ -494,7 +690,7 @@ type HeartBeatReq struct {
 func (x *HeartBeatReq) Reset() {
 	*x = HeartBeatReq{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_namenode_namenode_proto_msgTypes[8]
+		mi := &file_proto_namenode_namenode_proto_msgTypes[12]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -507,7 +703,7 @@ func (x *HeartBeatReq) String() string {
 func (*HeartBeatReq) ProtoMessage() {}
 
 func (x *HeartBeatReq) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_namenode_namenode_proto_msgTypes[8]
+	mi := &file_proto_namenode_namenode_proto_msgTypes[12]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -520,7 +716,7 @@ func (x *HeartBeatReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HeartBeatReq.ProtoReflect.Descriptor instead.
 func (*HeartBeatReq) Descriptor() ([]byte, []int) {
-	return file_proto_namenode_namenode_proto_rawDescGZIP(), []int{8}
+	return file_proto_namenode_namenode_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *HeartBeatReq) GetAddr() string {
@@ -541,7 +737,7 @@ type HeartBeatResp struct {
 func (x *HeartBeatResp) Reset() {
 	*x = HeartBeatResp{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_namenode_namenode_proto_msgTypes[9]
+		mi := &file_proto_namenode_namenode_proto_msgTypes[13]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -554,7 +750,7 @@ func (x *HeartBeatResp) String() string {
 func (*HeartBeatResp) ProtoMessage() {}
 
 func (x *HeartBeatResp) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_namenode_namenode_proto_msgTypes[9]
+	mi := &file_proto_namenode_namenode_proto_msgTypes[13]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -567,7 +763,7 @@ func (x *HeartBeatResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HeartBeatResp.ProtoReflect.Descriptor instead.
 func (*HeartBeatResp) Descriptor() ([]byte, []int) {
-	return file_proto_namenode_namenode_proto_rawDescGZIP(), []int{9}
+	return file_proto_namenode_namenode_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *HeartBeatResp) GetSuccess() bool {
@@ -588,7 +784,7 @@ type ListReq struct {
 func (x *ListReq) Reset() {
 	*x = ListReq{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_namenode_namenode_proto_msgTypes[10]
+		mi := &file_proto_namenode_namenode_proto_msgTypes[14]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -601,7 +797,7 @@ func (x *ListReq) String() string {
 func (*ListReq) ProtoMessage() {}
 
 func (x *ListReq) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_namenode_namenode_proto_msgTypes[10]
+	mi := &file_proto_namenode_namenode_proto_msgTypes[14]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -614,7 +810,7 @@ func (x *ListReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListReq.ProtoReflect.Descriptor instead.
 func (*ListReq) Descriptor() ([]byte, []int) {
-	return file_proto_namenode_namenode_proto_rawDescGZIP(), []int{10}
+	return file_proto_namenode_namenode_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *ListReq) GetParentPath() string {
@@ -636,7 +832,7 @@ type ListResp struct {
 func (x *ListResp) Reset() {
 	*x = ListResp{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_namenode_namenode_proto_msgTypes[11]
+		mi := &file_proto_namenode_namenode_proto_msgTypes[15]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -649,7 +845,7 @@ func (x *ListResp) String() string {
 func (*ListResp) ProtoMessage() {}
 
 func (x *ListResp) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_namenode_namenode_proto_msgTypes[11]
+	mi := &file_proto_namenode_namenode_proto_msgTypes[15]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -662,7 +858,7 @@ func (x *ListResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListResp.ProtoReflect.Descriptor instead.
 func (*ListResp) Descriptor() ([]byte, []int) {
-	return file_proto_namenode_namenode_proto_rawDescGZIP(), []int{11}
+	return file_proto_namenode_namenode_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *ListResp) GetDirName() []string {
@@ -690,7 +886,7 @@ type MkdirReq struct {
 func (x *MkdirReq) Reset() {
 	*x = MkdirReq{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_namenode_namenode_proto_msgTypes[12]
+		mi := &file_proto_namenode_namenode_proto_msgTypes[16]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -703,7 +899,7 @@ func (x *MkdirReq) String() string {
 func (*MkdirReq) ProtoMessage() {}
 
 func (x *MkdirReq) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_namenode_namenode_proto_msgTypes[12]
+	mi := &file_proto_namenode_namenode_proto_msgTypes[16]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -716,7 +912,7 @@ func (x *MkdirReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MkdirReq.ProtoReflect.Descriptor instead.
 func (*MkdirReq) Descriptor() ([]byte, []int) {
-	return file_proto_namenode_namenode_proto_rawDescGZIP(), []int{12}
+	return file_proto_namenode_namenode_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *MkdirReq) GetPath() string {
@@ -735,7 +931,7 @@ type MkdirResp struct {
 func (x *MkdirResp) Reset() {
 	*x = MkdirResp{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_namenode_namenode_proto_msgTypes[13]
+		mi := &file_proto_namenode_namenode_proto_msgTypes[17]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -748,7 +944,7 @@ func (x *MkdirResp) String() string {
 func (*MkdirResp) ProtoMessage() {}
 
 func (x *MkdirResp) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_namenode_namenode_proto_msgTypes[13]
+	mi := &file_proto_namenode_namenode_proto_msgTypes[17]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -761,7 +957,7 @@ func (x *MkdirResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MkdirResp.ProtoReflect.Descriptor instead.
 func (*MkdirResp) Descriptor() ([]byte, []int) {
-	return file_proto_namenode_namenode_proto_rawDescGZIP(), []int{13}
+	return file_proto_namenode_namenode_proto_rawDescGZIP(), []int{17}
 }
 
 type ReDirTreeReq struct {
@@ -776,7 +972,7 @@ type ReDirTreeReq struct {
 func (x *ReDirTreeReq) Reset() {
 	*x = ReDirTreeReq{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_namenode_namenode_proto_msgTypes[14]
+		mi := &file_proto_namenode_namenode_proto_msgTypes[18]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -789,7 +985,7 @@ func (x *ReDirTreeReq) String() string {
 func (*ReDirTreeReq) ProtoMessage() {}
 
 func (x *ReDirTreeReq) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_namenode_namenode_proto_msgTypes[14]
+	mi := &file_proto_namenode_namenode_proto_msgTypes[18]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -802,7 +998,7 @@ func (x *ReDirTreeReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReDirTreeReq.ProtoReflect.Descriptor instead.
 func (*ReDirTreeReq) Descriptor() ([]byte, []int) {
-	return file_proto_namenode_namenode_proto_rawDescGZIP(), []int{14}
+	return file_proto_namenode_namenode_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *ReDirTreeReq) GetOldPath() string {
@@ -830,7 +1026,7 @@ type ReDirTreeResp struct {
 func (x *ReDirTreeResp) Reset() {
 	*x = ReDirTreeResp{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_namenode_namenode_proto_msgTypes[15]
+		mi := &file_proto_namenode_namenode_proto_msgTypes[19]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -843,7 +1039,7 @@ func (x *ReDirTreeResp) String() string {
 func (*ReDirTreeResp) ProtoMessage() {}
 
 func (x *ReDirTreeResp) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_namenode_namenode_proto_msgTypes[15]
+	mi := &file_proto_namenode_namenode_proto_msgTypes[19]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -856,7 +1052,7 @@ func (x *ReDirTreeResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReDirTreeResp.ProtoReflect.Descriptor instead.
 func (*ReDirTreeResp) Descriptor() ([]byte, []int) {
-	return file_proto_namenode_namenode_proto_rawDescGZIP(), []int{15}
+	return file_proto_namenode_namenode_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *ReDirTreeResp) GetSuccess() bool {
@@ -878,7 +1074,7 @@ type RenameReq struct {
 func (x *RenameReq) Reset() {
 	*x = RenameReq{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_namenode_namenode_proto_msgTypes[16]
+		mi := &file_proto_namenode_namenode_proto_msgTypes[20]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -891,7 +1087,7 @@ func (x *RenameReq) String() string {
 func (*RenameReq) ProtoMessage() {}
 
 func (x *RenameReq) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_namenode_namenode_proto_msgTypes[16]
+	mi := &file_proto_namenode_namenode_proto_msgTypes[20]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -904,7 +1100,7 @@ func (x *RenameReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RenameReq.ProtoReflect.Descriptor instead.
 func (*RenameReq) Descriptor() ([]byte, []int) {
-	return file_proto_namenode_namenode_proto_rawDescGZIP(), []int{16}
+	return file_proto_namenode_namenode_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *RenameReq) GetOldFileName() string {
@@ -932,7 +1128,7 @@ type RenameResp struct {
 func (x *RenameResp) Reset() {
 	*x = RenameResp{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_namenode_namenode_proto_msgTypes[17]
+		mi := &file_proto_namenode_namenode_proto_msgTypes[21]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -945,7 +1141,7 @@ func (x *RenameResp) String() string {
 func (*RenameResp) ProtoMessage() {}
 
 func (x *RenameResp) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_namenode_namenode_proto_msgTypes[17]
+	mi := &file_proto_namenode_namenode_proto_msgTypes[21]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -958,7 +1154,7 @@ func (x *RenameResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RenameResp.ProtoReflect.Descriptor instead.
 func (*RenameResp) Descriptor() ([]byte, []int) {
-	return file_proto_namenode_namenode_proto_rawDescGZIP(), []int{17}
+	return file_proto_namenode_namenode_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *RenameResp) GetSuccess() bool {
@@ -979,7 +1175,7 @@ type IsDirReq struct {
 func (x *IsDirReq) Reset() {
 	*x = IsDirReq{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_namenode_namenode_proto_msgTypes[18]
+		mi := &file_proto_namenode_namenode_proto_msgTypes[22]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -992,7 +1188,7 @@ func (x *IsDirReq) String() string {
 func (*IsDirReq) ProtoMessage() {}
 
 func (x *IsDirReq) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_namenode_namenode_proto_msgTypes[18]
+	mi := &file_proto_namenode_namenode_proto_msgTypes[22]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1005,7 +1201,7 @@ func (x *IsDirReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use IsDirReq.ProtoReflect.Descriptor instead.
 func (*IsDirReq) Descriptor() ([]byte, []int) {
-	return file_proto_namenode_namenode_proto_rawDescGZIP(), []int{18}
+	return file_proto_namenode_namenode_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *IsDirReq) GetFilename() string {
@@ -1026,7 +1222,7 @@ type IsDirResp struct {
 func (x *IsDirResp) Reset() {
 	*x = IsDirResp{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_namenode_namenode_proto_msgTypes[19]
+		mi := &file_proto_namenode_namenode_proto_msgTypes[23]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1039,7 +1235,7 @@ func (x *IsDirResp) String() string {
 func (*IsDirResp) ProtoMessage() {}
 
 func (x *IsDirResp) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_namenode_namenode_proto_msgTypes[19]
+	mi := &file_proto_namenode_namenode_proto_msgTypes[23]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1052,7 +1248,7 @@ func (x *IsDirResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use IsDirResp.ProtoReflect.Descriptor instead.
 func (*IsDirResp) Descriptor() ([]byte, []int) {
-	return file_proto_namenode_namenode_proto_rawDescGZIP(), []int{19}
+	return file_proto_namenode_namenode_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *IsDirResp) GetOk() bool {
@@ -1071,7 +1267,7 @@ type GetDataNodesReq struct {
 func (x *GetDataNodesReq) Reset() {
 	*x = GetDataNodesReq{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_namenode_namenode_proto_msgTypes[20]
+		mi := &file_proto_namenode_namenode_proto_msgTypes[24]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1084,7 +1280,7 @@ func (x *GetDataNodesReq) String() string {
 func (*GetDataNodesReq) ProtoMessage() {}
 
 func (x *GetDataNodesReq) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_namenode_namenode_proto_msgTypes[20]
+	mi := &file_proto_namenode_namenode_proto_msgTypes[24]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1097,7 +1293,7 @@ func (x *GetDataNodesReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetDataNodesReq.ProtoReflect.Descriptor instead.
 func (*GetDataNodesReq) Descriptor() ([]byte, []int) {
-	return file_proto_namenode_namenode_proto_rawDescGZIP(), []int{20}
+	return file_proto_namenode_namenode_proto_rawDescGZIP(), []int{24}
 }
 
 type GetDataNodesResp struct {
@@ -1111,7 +1307,7 @@ type GetDataNodesResp struct {
 func (x *GetDataNodesResp) Reset() {
 	*x = GetDataNodesResp{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_namenode_namenode_proto_msgTypes[21]
+		mi := &file_proto_namenode_namenode_proto_msgTypes[25]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1124,7 +1320,7 @@ func (x *GetDataNodesResp) String() string {
 func (*GetDataNodesResp) ProtoMessage() {}
 
 func (x *GetDataNodesResp) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_namenode_namenode_proto_msgTypes[21]
+	mi := &file_proto_namenode_namenode_proto_msgTypes[25]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1137,7 +1333,7 @@ func (x *GetDataNodesResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetDataNodesResp.ProtoReflect.Descriptor instead.
 func (*GetDataNodesResp) Descriptor() ([]byte, []int) {
-	return file_proto_namenode_namenode_proto_rawDescGZIP(), []int{21}
+	return file_proto_namenode_namenode_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *GetDataNodesResp) GetDataNodeList() []string {
@@ -1158,7 +1354,7 @@ type StatDataReq struct {
 func (x *StatDataReq) Reset() {
 	*x = StatDataReq{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_namenode_namenode_proto_msgTypes[22]
+		mi := &file_proto_namenode_namenode_proto_msgTypes[26]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1171,7 +1367,7 @@ func (x *StatDataReq) String() string {
 func (*StatDataReq) ProtoMessage() {}
 
 func (x *StatDataReq) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_namenode_namenode_proto_msgTypes[22]
+	mi := &file_proto_namenode_namenode_proto_msgTypes[26]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1184,7 +1380,7 @@ func (x *StatDataReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StatDataReq.ProtoReflect.Descriptor instead.
 func (*StatDataReq) Descriptor() ([]byte, []int) {
-	return file_proto_namenode_namenode_proto_rawDescGZIP(), []int{22}
+	return file_proto_namenode_namenode_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *StatDataReq) GetFileName() string {
@@ -1205,7 +1401,7 @@ type StatDataResp struct {
 func (x *StatDataResp) Reset() {
 	*x = StatDataResp{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_namenode_namenode_proto_msgTypes[23]
+		mi := &file_proto_namenode_namenode_proto_msgTypes[27]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1218,7 +1414,7 @@ func (x *StatDataResp) String() string {
 func (*StatDataResp) ProtoMessage() {}
 
 func (x *StatDataResp) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_namenode_namenode_proto_msgTypes[23]
+	mi := &file_proto_namenode_namenode_proto_msgTypes[27]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1231,7 +1427,7 @@ func (x *StatDataResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StatDataResp.ProtoReflect.Descriptor instead.
 func (*StatDataResp) Descriptor() ([]byte, []int) {
-	return file_proto_namenode_namenode_proto_rawDescGZIP(), []int{23}
+	return file_proto_namenode_namenode_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *StatDataResp) GetNameNodeMetaDataList() []*NameNodeMetaData {
@@ -1252,7 +1448,7 @@ type DeleteDataReq struct {
 func (x *DeleteDataReq) Reset() {
 	*x = DeleteDataReq{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_namenode_namenode_proto_msgTypes[24]
+		mi := &file_proto_namenode_namenode_proto_msgTypes[28]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1265,7 +1461,7 @@ func (x *DeleteDataReq) String() string {
 func (*DeleteDataReq) ProtoMessage() {}
 
 func (x *DeleteDataReq) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_namenode_namenode_proto_msgTypes[24]
+	mi := &file_proto_namenode_namenode_proto_msgTypes[28]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1278,7 +1474,7 @@ func (x *DeleteDataReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteDataReq.ProtoReflect.Descriptor instead.
 func (*DeleteDataReq) Descriptor() ([]byte, []int) {
-	return file_proto_namenode_namenode_proto_rawDescGZIP(), []int{24}
+	return file_proto_namenode_namenode_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *DeleteDataReq) GetFileName() string {
@@ -1299,7 +1495,7 @@ type DeleteDataResp struct {
 func (x *DeleteDataResp) Reset() {
 	*x = DeleteDataResp{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_namenode_namenode_proto_msgTypes[25]
+		mi := &file_proto_namenode_namenode_proto_msgTypes[29]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1312,7 +1508,7 @@ func (x *DeleteDataResp) String() string {
 func (*DeleteDataResp) ProtoMessage() {}
 
 func (x *DeleteDataResp) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_namenode_namenode_proto_msgTypes[25]
+	mi := &file_proto_namenode_namenode_proto_msgTypes[29]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1325,7 +1521,7 @@ func (x *DeleteDataResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteDataResp.ProtoReflect.Descriptor instead.
 func (*DeleteDataResp) Descriptor() ([]byte, []int) {
-	return file_proto_namenode_namenode_proto_rawDescGZIP(), []int{25}
+	return file_proto_namenode_namenode_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *DeleteDataResp) GetNameNodeMetaDataList() []*NameNodeMetaData {
@@ -1347,7 +1543,7 @@ type DataNodeInstance struct {
 func (x *DataNodeInstance) Reset() {
 	*x = DataNodeInstance{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_namenode_namenode_proto_msgTypes[26]
+		mi := &file_proto_namenode_namenode_proto_msgTypes[30]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1360,7 +1556,7 @@ func (x *DataNodeInstance) String() string {
 func (*DataNodeInstance) ProtoMessage() {}
 
 func (x *DataNodeInstance) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_namenode_namenode_proto_msgTypes[26]
+	mi := &file_proto_namenode_namenode_proto_msgTypes[30]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1373,7 +1569,7 @@ func (x *DataNodeInstance) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DataNodeInstance.ProtoReflect.Descriptor instead.
 func (*DataNodeInstance) Descriptor() ([]byte, []int) {
-	return file_proto_namenode_namenode_proto_rawDescGZIP(), []int{26}
+	return file_proto_namenode_namenode_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *DataNodeInstance) GetHost() string {
@@ -1402,7 +1598,7 @@ type NameNodeMetaData struct {
 func (x *NameNodeMetaData) Reset() {
 	*x = NameNodeMetaData{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_namenode_namenode_proto_msgTypes[27]
+		mi := &file_proto_namenode_namenode_proto_msgTypes[31]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1415,7 +1611,7 @@ func (x *NameNodeMetaData) String() string {
 func (*NameNodeMetaData) ProtoMessage() {}
 
 func (x *NameNodeMetaData) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_namenode_namenode_proto_msgTypes[27]
+	mi := &file_proto_namenode_namenode_proto_msgTypes[31]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1428,7 +1624,7 @@ func (x *NameNodeMetaData) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NameNodeMetaData.ProtoReflect.Descriptor instead.
 func (*NameNodeMetaData) Descriptor() ([]byte, []int) {
-	return file_proto_namenode_namenode_proto_rawDescGZIP(), []int{27}
+	return file_proto_namenode_namenode_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *NameNodeMetaData) GetBlockId() string {
@@ -1456,7 +1652,7 @@ type GetBlockSizeRequest struct {
 func (x *GetBlockSizeRequest) Reset() {
 	*x = GetBlockSizeRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_namenode_namenode_proto_msgTypes[28]
+		mi := &file_proto_namenode_namenode_proto_msgTypes[32]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1469,7 +1665,7 @@ func (x *GetBlockSizeRequest) String() string {
 func (*GetBlockSizeRequest) ProtoMessage() {}
 
 func (x *GetBlockSizeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_namenode_namenode_proto_msgTypes[28]
+	mi := &file_proto_namenode_namenode_proto_msgTypes[32]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1482,7 +1678,7 @@ func (x *GetBlockSizeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetBlockSizeRequest.ProtoReflect.Descriptor instead.
 func (*GetBlockSizeRequest) Descriptor() ([]byte, []int) {
-	return file_proto_namenode_namenode_proto_rawDescGZIP(), []int{28}
+	return file_proto_namenode_namenode_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *GetBlockSizeRequest) GetRequest() bool {
@@ -1503,7 +1699,7 @@ type GetBlockSizeResponse struct {
 func (x *GetBlockSizeResponse) Reset() {
 	*x = GetBlockSizeResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_namenode_namenode_proto_msgTypes[29]
+		mi := &file_proto_namenode_namenode_proto_msgTypes[33]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1516,7 +1712,7 @@ func (x *GetBlockSizeResponse) String() string {
 func (*GetBlockSizeResponse) ProtoMessage() {}
 
 func (x *GetBlockSizeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_namenode_namenode_proto_msgTypes[29]
+	mi := &file_proto_namenode_namenode_proto_msgTypes[33]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1529,7 +1725,7 @@ func (x *GetBlockSizeResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetBlockSizeResponse.ProtoReflect.Descriptor instead.
 func (*GetBlockSizeResponse) Descriptor() ([]byte, []int) {
-	return file_proto_namenode_namenode_proto_rawDescGZIP(), []int{29}
+	return file_proto_namenode_namenode_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *GetBlockSizeResponse) GetBlockSize() uint64 {
@@ -1550,7 +1746,7 @@ type ReadRequst struct {
 func (x *ReadRequst) Reset() {
 	*x = ReadRequst{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_namenode_namenode_proto_msgTypes[30]
+		mi := &file_proto_namenode_namenode_proto_msgTypes[34]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1563,7 +1759,7 @@ func (x *ReadRequst) String() string {
 func (*ReadRequst) ProtoMessage() {}
 
 func (x *ReadRequst) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_namenode_namenode_proto_msgTypes[30]
+	mi := &file_proto_namenode_namenode_proto_msgTypes[34]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1576,7 +1772,7 @@ func (x *ReadRequst) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReadRequst.ProtoReflect.Descriptor instead.
 func (*ReadRequst) Descriptor() ([]byte, []int) {
-	return file_proto_namenode_namenode_proto_rawDescGZIP(), []int{30}
+	return file_proto_namenode_namenode_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *ReadRequst) GetFileName() string {
@@ -1597,7 +1793,7 @@ type ReadResponse struct {
 func (x *ReadResponse) Reset() {
 	*x = ReadResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_namenode_namenode_proto_msgTypes[31]
+		mi := &file_proto_namenode_namenode_proto_msgTypes[35]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1610,7 +1806,7 @@ func (x *ReadResponse) String() string {
 func (*ReadResponse) ProtoMessage() {}
 
 func (x *ReadResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_namenode_namenode_proto_msgTypes[31]
+	mi := &file_proto_namenode_namenode_proto_msgTypes[35]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1623,7 +1819,7 @@ func (x *ReadResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReadResponse.ProtoReflect.Descriptor instead.
 func (*ReadResponse) Descriptor() ([]byte, []int) {
-	return file_proto_namenode_namenode_proto_rawDescGZIP(), []int{31}
+	return file_proto_namenode_namenode_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *ReadResponse) GetNameNodeMetaDataList() []*NameNodeMetaData {
@@ -1638,14 +1834,14 @@ type WriteRequest struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	FileName string `protobuf:"bytes,1,opt,name=fileName,proto3" json:"fileName,omitempty"`
-	FileSize uint64 `protobuf:"varint,2,opt,name=fileSize,proto3" json:"fileSize,omitempty"`
+	BlockNumber uint64 `protobuf:"varint,1,opt,name=blockNumber,proto3" json:"blockNumber,omitempty"`
+	FileName    string `protobuf:"bytes,2,opt,name=fileName,proto3" json:"fileName,omitempty"`
 }
 
 func (x *WriteRequest) Reset() {
 	*x = WriteRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_namenode_namenode_proto_msgTypes[32]
+		mi := &file_proto_namenode_namenode_proto_msgTypes[36]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1658,7 +1854,7 @@ func (x *WriteRequest) String() string {
 func (*WriteRequest) ProtoMessage() {}
 
 func (x *WriteRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_namenode_namenode_proto_msgTypes[32]
+	mi := &file_proto_namenode_namenode_proto_msgTypes[36]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1671,7 +1867,14 @@ func (x *WriteRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WriteRequest.ProtoReflect.Descriptor instead.
 func (*WriteRequest) Descriptor() ([]byte, []int) {
-	return file_proto_namenode_namenode_proto_rawDescGZIP(), []int{32}
+	return file_proto_namenode_namenode_proto_rawDescGZIP(), []int{36}
+}
+
+func (x *WriteRequest) GetBlockNumber() uint64 {
+	if x != nil {
+		return x.BlockNumber
+	}
+	return 0
 }
 
 func (x *WriteRequest) GetFileName() string {
@@ -1679,13 +1882,6 @@ func (x *WriteRequest) GetFileName() string {
 		return x.FileName
 	}
 	return ""
-}
-
-func (x *WriteRequest) GetFileSize() uint64 {
-	if x != nil {
-		return x.FileSize
-	}
-	return 0
 }
 
 type WriteResponse struct {
@@ -1699,7 +1895,7 @@ type WriteResponse struct {
 func (x *WriteResponse) Reset() {
 	*x = WriteResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_namenode_namenode_proto_msgTypes[33]
+		mi := &file_proto_namenode_namenode_proto_msgTypes[37]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1712,7 +1908,7 @@ func (x *WriteResponse) String() string {
 func (*WriteResponse) ProtoMessage() {}
 
 func (x *WriteResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_namenode_namenode_proto_msgTypes[33]
+	mi := &file_proto_namenode_namenode_proto_msgTypes[37]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1725,7 +1921,7 @@ func (x *WriteResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WriteResponse.ProtoReflect.Descriptor instead.
 func (*WriteResponse) Descriptor() ([]byte, []int) {
-	return file_proto_namenode_namenode_proto_rawDescGZIP(), []int{33}
+	return file_proto_namenode_namenode_proto_rawDescGZIP(), []int{37}
 }
 
 func (x *WriteResponse) GetNameNodeMetaDataList() []*NameNodeMetaData {
@@ -1740,7 +1936,25 @@ var File_proto_namenode_namenode_proto protoreflect.FileDescriptor
 var file_proto_namenode_namenode_proto_rawDesc = []byte{
 	0x0a, 0x1d, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2f, 0x6e, 0x61, 0x6d, 0x65, 0x6e, 0x6f, 0x64, 0x65,
 	0x2f, 0x6e, 0x61, 0x6d, 0x65, 0x6e, 0x6f, 0x64, 0x65, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x12,
-	0x09, 0x6e, 0x61, 0x6d, 0x65, 0x6e, 0x6f, 0x64, 0x65, 0x5f, 0x22, 0x0f, 0x0a, 0x0d, 0x46, 0x69,
+	0x09, 0x6e, 0x61, 0x6d, 0x65, 0x6e, 0x6f, 0x64, 0x65, 0x5f, 0x22, 0x40, 0x0a, 0x06, 0x50, 0x75,
+	0x74, 0x52, 0x65, 0x71, 0x12, 0x1a, 0x0a, 0x08, 0x66, 0x69, 0x6c, 0x65, 0x4e, 0x61, 0x6d, 0x65,
+	0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x08, 0x66, 0x69, 0x6c, 0x65, 0x4e, 0x61, 0x6d, 0x65,
+	0x12, 0x1a, 0x0a, 0x08, 0x66, 0x69, 0x6c, 0x65, 0x53, 0x69, 0x7a, 0x65, 0x18, 0x02, 0x20, 0x01,
+	0x28, 0x04, 0x52, 0x08, 0x66, 0x69, 0x6c, 0x65, 0x53, 0x69, 0x7a, 0x65, 0x22, 0x5a, 0x0a, 0x07,
+	0x50, 0x75, 0x74, 0x52, 0x65, 0x73, 0x70, 0x12, 0x4f, 0x0a, 0x14, 0x6e, 0x61, 0x6d, 0x65, 0x4e,
+	0x6f, 0x64, 0x65, 0x4d, 0x65, 0x74, 0x61, 0x44, 0x61, 0x74, 0x61, 0x4c, 0x69, 0x73, 0x74, 0x18,
+	0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x1b, 0x2e, 0x6e, 0x61, 0x6d, 0x65, 0x6e, 0x6f, 0x64, 0x65,
+	0x5f, 0x2e, 0x4e, 0x61, 0x6d, 0x65, 0x4e, 0x6f, 0x64, 0x65, 0x4d, 0x65, 0x74, 0x61, 0x44, 0x61,
+	0x74, 0x61, 0x52, 0x14, 0x6e, 0x61, 0x6d, 0x65, 0x4e, 0x6f, 0x64, 0x65, 0x4d, 0x65, 0x74, 0x61,
+	0x44, 0x61, 0x74, 0x61, 0x4c, 0x69, 0x73, 0x74, 0x22, 0x24, 0x0a, 0x06, 0x47, 0x65, 0x74, 0x52,
+	0x65, 0x71, 0x12, 0x1a, 0x0a, 0x08, 0x66, 0x69, 0x6c, 0x65, 0x4e, 0x61, 0x6d, 0x65, 0x18, 0x01,
+	0x20, 0x01, 0x28, 0x09, 0x52, 0x08, 0x66, 0x69, 0x6c, 0x65, 0x4e, 0x61, 0x6d, 0x65, 0x22, 0x5a,
+	0x0a, 0x07, 0x47, 0x65, 0x74, 0x52, 0x65, 0x73, 0x70, 0x12, 0x4f, 0x0a, 0x14, 0x6e, 0x61, 0x6d,
+	0x65, 0x4e, 0x6f, 0x64, 0x65, 0x4d, 0x65, 0x74, 0x61, 0x44, 0x61, 0x74, 0x61, 0x4c, 0x69, 0x73,
+	0x74, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x1b, 0x2e, 0x6e, 0x61, 0x6d, 0x65, 0x6e, 0x6f,
+	0x64, 0x65, 0x5f, 0x2e, 0x4e, 0x61, 0x6d, 0x65, 0x4e, 0x6f, 0x64, 0x65, 0x4d, 0x65, 0x74, 0x61,
+	0x44, 0x61, 0x74, 0x61, 0x52, 0x14, 0x6e, 0x61, 0x6d, 0x65, 0x4e, 0x6f, 0x64, 0x65, 0x4d, 0x65,
+	0x74, 0x61, 0x44, 0x61, 0x74, 0x61, 0x4c, 0x69, 0x73, 0x74, 0x22, 0x0f, 0x0a, 0x0d, 0x46, 0x69,
 	0x6e, 0x64, 0x4c, 0x65, 0x61, 0x64, 0x65, 0x72, 0x52, 0x65, 0x71, 0x22, 0x24, 0x0a, 0x0e, 0x46,
 	0x69, 0x6e, 0x64, 0x4c, 0x65, 0x61, 0x64, 0x65, 0x72, 0x52, 0x65, 0x73, 0x70, 0x12, 0x12, 0x0a,
 	0x04, 0x41, 0x64, 0x64, 0x72, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x41, 0x64, 0x64,
@@ -1865,88 +2079,94 @@ var file_proto_namenode_namenode_proto_rawDesc = []byte{
 	0x69, 0x73, 0x74, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x1b, 0x2e, 0x6e, 0x61, 0x6d, 0x65,
 	0x6e, 0x6f, 0x64, 0x65, 0x5f, 0x2e, 0x4e, 0x61, 0x6d, 0x65, 0x4e, 0x6f, 0x64, 0x65, 0x4d, 0x65,
 	0x74, 0x61, 0x44, 0x61, 0x74, 0x61, 0x52, 0x14, 0x6e, 0x61, 0x6d, 0x65, 0x4e, 0x6f, 0x64, 0x65,
-	0x4d, 0x65, 0x74, 0x61, 0x44, 0x61, 0x74, 0x61, 0x4c, 0x69, 0x73, 0x74, 0x22, 0x46, 0x0a, 0x0c,
-	0x57, 0x72, 0x69, 0x74, 0x65, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x1a, 0x0a, 0x08,
-	0x66, 0x69, 0x6c, 0x65, 0x4e, 0x61, 0x6d, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x08,
-	0x66, 0x69, 0x6c, 0x65, 0x4e, 0x61, 0x6d, 0x65, 0x12, 0x1a, 0x0a, 0x08, 0x66, 0x69, 0x6c, 0x65,
-	0x53, 0x69, 0x7a, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x04, 0x52, 0x08, 0x66, 0x69, 0x6c, 0x65,
-	0x53, 0x69, 0x7a, 0x65, 0x22, 0x60, 0x0a, 0x0d, 0x57, 0x72, 0x69, 0x74, 0x65, 0x52, 0x65, 0x73,
-	0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x4f, 0x0a, 0x14, 0x6e, 0x61, 0x6d, 0x65, 0x4e, 0x6f, 0x64,
-	0x65, 0x4d, 0x65, 0x74, 0x61, 0x44, 0x61, 0x74, 0x61, 0x4c, 0x69, 0x73, 0x74, 0x18, 0x01, 0x20,
-	0x03, 0x28, 0x0b, 0x32, 0x1b, 0x2e, 0x6e, 0x61, 0x6d, 0x65, 0x6e, 0x6f, 0x64, 0x65, 0x5f, 0x2e,
-	0x4e, 0x61, 0x6d, 0x65, 0x4e, 0x6f, 0x64, 0x65, 0x4d, 0x65, 0x74, 0x61, 0x44, 0x61, 0x74, 0x61,
-	0x52, 0x14, 0x6e, 0x61, 0x6d, 0x65, 0x4e, 0x6f, 0x64, 0x65, 0x4d, 0x65, 0x74, 0x61, 0x44, 0x61,
-	0x74, 0x61, 0x4c, 0x69, 0x73, 0x74, 0x32, 0xb9, 0x08, 0x0a, 0x0f, 0x4e, 0x61, 0x6d, 0x65, 0x4e,
-	0x6f, 0x64, 0x65, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x12, 0x4f, 0x0a, 0x0c, 0x47, 0x65,
-	0x74, 0x42, 0x6c, 0x6f, 0x63, 0x6b, 0x53, 0x69, 0x7a, 0x65, 0x12, 0x1e, 0x2e, 0x6e, 0x61, 0x6d,
-	0x65, 0x6e, 0x6f, 0x64, 0x65, 0x5f, 0x2e, 0x47, 0x65, 0x74, 0x42, 0x6c, 0x6f, 0x63, 0x6b, 0x53,
-	0x69, 0x7a, 0x65, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x1f, 0x2e, 0x6e, 0x61, 0x6d,
-	0x65, 0x6e, 0x6f, 0x64, 0x65, 0x5f, 0x2e, 0x47, 0x65, 0x74, 0x42, 0x6c, 0x6f, 0x63, 0x6b, 0x53,
-	0x69, 0x7a, 0x65, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x3a, 0x0a, 0x08, 0x52,
-	0x65, 0x61, 0x64, 0x44, 0x61, 0x74, 0x61, 0x12, 0x15, 0x2e, 0x6e, 0x61, 0x6d, 0x65, 0x6e, 0x6f,
-	0x64, 0x65, 0x5f, 0x2e, 0x52, 0x65, 0x61, 0x64, 0x52, 0x65, 0x71, 0x75, 0x73, 0x74, 0x1a, 0x17,
-	0x2e, 0x6e, 0x61, 0x6d, 0x65, 0x6e, 0x6f, 0x64, 0x65, 0x5f, 0x2e, 0x52, 0x65, 0x61, 0x64, 0x52,
-	0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x3e, 0x0a, 0x09, 0x57, 0x72, 0x69, 0x74, 0x65,
-	0x44, 0x61, 0x74, 0x61, 0x12, 0x17, 0x2e, 0x6e, 0x61, 0x6d, 0x65, 0x6e, 0x6f, 0x64, 0x65, 0x5f,
-	0x2e, 0x57, 0x72, 0x69, 0x74, 0x65, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x18, 0x2e,
-	0x6e, 0x61, 0x6d, 0x65, 0x6e, 0x6f, 0x64, 0x65, 0x5f, 0x2e, 0x57, 0x72, 0x69, 0x74, 0x65, 0x52,
-	0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x41, 0x0a, 0x0a, 0x44, 0x65, 0x6c, 0x65, 0x74,
-	0x65, 0x44, 0x61, 0x74, 0x61, 0x12, 0x18, 0x2e, 0x6e, 0x61, 0x6d, 0x65, 0x6e, 0x6f, 0x64, 0x65,
-	0x5f, 0x2e, 0x44, 0x65, 0x6c, 0x65, 0x74, 0x65, 0x44, 0x61, 0x74, 0x61, 0x52, 0x65, 0x71, 0x1a,
-	0x19, 0x2e, 0x6e, 0x61, 0x6d, 0x65, 0x6e, 0x6f, 0x64, 0x65, 0x5f, 0x2e, 0x44, 0x65, 0x6c, 0x65,
-	0x74, 0x65, 0x44, 0x61, 0x74, 0x61, 0x52, 0x65, 0x73, 0x70, 0x12, 0x3b, 0x0a, 0x08, 0x53, 0x74,
-	0x61, 0x74, 0x44, 0x61, 0x74, 0x61, 0x12, 0x16, 0x2e, 0x6e, 0x61, 0x6d, 0x65, 0x6e, 0x6f, 0x64,
-	0x65, 0x5f, 0x2e, 0x53, 0x74, 0x61, 0x74, 0x44, 0x61, 0x74, 0x61, 0x52, 0x65, 0x71, 0x1a, 0x17,
-	0x2e, 0x6e, 0x61, 0x6d, 0x65, 0x6e, 0x6f, 0x64, 0x65, 0x5f, 0x2e, 0x53, 0x74, 0x61, 0x74, 0x44,
-	0x61, 0x74, 0x61, 0x52, 0x65, 0x73, 0x70, 0x12, 0x47, 0x0a, 0x0c, 0x47, 0x65, 0x74, 0x44, 0x61,
-	0x74, 0x61, 0x4e, 0x6f, 0x64, 0x65, 0x73, 0x12, 0x1a, 0x2e, 0x6e, 0x61, 0x6d, 0x65, 0x6e, 0x6f,
-	0x64, 0x65, 0x5f, 0x2e, 0x47, 0x65, 0x74, 0x44, 0x61, 0x74, 0x61, 0x4e, 0x6f, 0x64, 0x65, 0x73,
-	0x52, 0x65, 0x71, 0x1a, 0x1b, 0x2e, 0x6e, 0x61, 0x6d, 0x65, 0x6e, 0x6f, 0x64, 0x65, 0x5f, 0x2e,
-	0x47, 0x65, 0x74, 0x44, 0x61, 0x74, 0x61, 0x4e, 0x6f, 0x64, 0x65, 0x73, 0x52, 0x65, 0x73, 0x70,
-	0x12, 0x32, 0x0a, 0x05, 0x49, 0x73, 0x44, 0x69, 0x72, 0x12, 0x13, 0x2e, 0x6e, 0x61, 0x6d, 0x65,
-	0x6e, 0x6f, 0x64, 0x65, 0x5f, 0x2e, 0x49, 0x73, 0x44, 0x69, 0x72, 0x52, 0x65, 0x71, 0x1a, 0x14,
-	0x2e, 0x6e, 0x61, 0x6d, 0x65, 0x6e, 0x6f, 0x64, 0x65, 0x5f, 0x2e, 0x49, 0x73, 0x44, 0x69, 0x72,
-	0x52, 0x65, 0x73, 0x70, 0x12, 0x35, 0x0a, 0x06, 0x52, 0x65, 0x6e, 0x61, 0x6d, 0x65, 0x12, 0x14,
-	0x2e, 0x6e, 0x61, 0x6d, 0x65, 0x6e, 0x6f, 0x64, 0x65, 0x5f, 0x2e, 0x52, 0x65, 0x6e, 0x61, 0x6d,
-	0x65, 0x52, 0x65, 0x71, 0x1a, 0x15, 0x2e, 0x6e, 0x61, 0x6d, 0x65, 0x6e, 0x6f, 0x64, 0x65, 0x5f,
-	0x2e, 0x52, 0x65, 0x6e, 0x61, 0x6d, 0x65, 0x52, 0x65, 0x73, 0x70, 0x12, 0x32, 0x0a, 0x05, 0x4d,
-	0x6b, 0x64, 0x69, 0x72, 0x12, 0x13, 0x2e, 0x6e, 0x61, 0x6d, 0x65, 0x6e, 0x6f, 0x64, 0x65, 0x5f,
-	0x2e, 0x4d, 0x6b, 0x64, 0x69, 0x72, 0x52, 0x65, 0x71, 0x1a, 0x14, 0x2e, 0x6e, 0x61, 0x6d, 0x65,
-	0x6e, 0x6f, 0x64, 0x65, 0x5f, 0x2e, 0x4d, 0x6b, 0x64, 0x69, 0x72, 0x52, 0x65, 0x73, 0x70, 0x12,
-	0x2f, 0x0a, 0x04, 0x4c, 0x69, 0x73, 0x74, 0x12, 0x12, 0x2e, 0x6e, 0x61, 0x6d, 0x65, 0x6e, 0x6f,
-	0x64, 0x65, 0x5f, 0x2e, 0x4c, 0x69, 0x73, 0x74, 0x52, 0x65, 0x71, 0x1a, 0x13, 0x2e, 0x6e, 0x61,
-	0x6d, 0x65, 0x6e, 0x6f, 0x64, 0x65, 0x5f, 0x2e, 0x4c, 0x69, 0x73, 0x74, 0x52, 0x65, 0x73, 0x70,
-	0x12, 0x3e, 0x0a, 0x09, 0x52, 0x65, 0x44, 0x69, 0x72, 0x54, 0x72, 0x65, 0x65, 0x12, 0x17, 0x2e,
-	0x6e, 0x61, 0x6d, 0x65, 0x6e, 0x6f, 0x64, 0x65, 0x5f, 0x2e, 0x52, 0x65, 0x44, 0x69, 0x72, 0x54,
-	0x72, 0x65, 0x65, 0x52, 0x65, 0x71, 0x1a, 0x18, 0x2e, 0x6e, 0x61, 0x6d, 0x65, 0x6e, 0x6f, 0x64,
-	0x65, 0x5f, 0x2e, 0x52, 0x65, 0x44, 0x69, 0x72, 0x54, 0x72, 0x65, 0x65, 0x52, 0x65, 0x73, 0x70,
-	0x12, 0x3e, 0x0a, 0x09, 0x48, 0x65, 0x61, 0x72, 0x74, 0x42, 0x65, 0x61, 0x74, 0x12, 0x17, 0x2e,
-	0x6e, 0x61, 0x6d, 0x65, 0x6e, 0x6f, 0x64, 0x65, 0x5f, 0x2e, 0x48, 0x65, 0x61, 0x72, 0x74, 0x42,
-	0x65, 0x61, 0x74, 0x52, 0x65, 0x71, 0x1a, 0x18, 0x2e, 0x6e, 0x61, 0x6d, 0x65, 0x6e, 0x6f, 0x64,
-	0x65, 0x5f, 0x2e, 0x48, 0x65, 0x61, 0x72, 0x74, 0x42, 0x65, 0x61, 0x74, 0x52, 0x65, 0x73, 0x70,
-	0x12, 0x53, 0x0a, 0x10, 0x52, 0x65, 0x67, 0x69, 0x73, 0x74, 0x65, 0x72, 0x44, 0x61, 0x74, 0x61,
-	0x4e, 0x6f, 0x64, 0x65, 0x12, 0x1e, 0x2e, 0x6e, 0x61, 0x6d, 0x65, 0x6e, 0x6f, 0x64, 0x65, 0x5f,
-	0x2e, 0x52, 0x65, 0x67, 0x69, 0x73, 0x74, 0x65, 0x72, 0x44, 0x61, 0x74, 0x61, 0x4e, 0x6f, 0x64,
-	0x65, 0x52, 0x65, 0x71, 0x1a, 0x1f, 0x2e, 0x6e, 0x61, 0x6d, 0x65, 0x6e, 0x6f, 0x64, 0x65, 0x5f,
-	0x2e, 0x52, 0x65, 0x67, 0x69, 0x73, 0x74, 0x65, 0x72, 0x44, 0x61, 0x74, 0x61, 0x4e, 0x6f, 0x64,
-	0x65, 0x52, 0x65, 0x73, 0x70, 0x12, 0x44, 0x0a, 0x0b, 0x4a, 0x6f, 0x69, 0x6e, 0x43, 0x6c, 0x75,
-	0x73, 0x74, 0x65, 0x72, 0x12, 0x19, 0x2e, 0x6e, 0x61, 0x6d, 0x65, 0x6e, 0x6f, 0x64, 0x65, 0x5f,
-	0x2e, 0x4a, 0x6f, 0x69, 0x6e, 0x43, 0x6c, 0x75, 0x73, 0x74, 0x65, 0x72, 0x52, 0x65, 0x71, 0x1a,
-	0x1a, 0x2e, 0x6e, 0x61, 0x6d, 0x65, 0x6e, 0x6f, 0x64, 0x65, 0x5f, 0x2e, 0x4a, 0x6f, 0x69, 0x6e,
-	0x43, 0x6c, 0x75, 0x73, 0x74, 0x65, 0x72, 0x52, 0x65, 0x73, 0x70, 0x12, 0x41, 0x0a, 0x0a, 0x46,
-	0x69, 0x6e, 0x64, 0x4c, 0x65, 0x61, 0x64, 0x65, 0x72, 0x12, 0x18, 0x2e, 0x6e, 0x61, 0x6d, 0x65,
-	0x6e, 0x6f, 0x64, 0x65, 0x5f, 0x2e, 0x46, 0x69, 0x6e, 0x64, 0x4c, 0x65, 0x61, 0x64, 0x65, 0x72,
-	0x52, 0x65, 0x71, 0x1a, 0x19, 0x2e, 0x6e, 0x61, 0x6d, 0x65, 0x6e, 0x6f, 0x64, 0x65, 0x5f, 0x2e,
-	0x46, 0x69, 0x6e, 0x64, 0x4c, 0x65, 0x61, 0x64, 0x65, 0x72, 0x52, 0x65, 0x73, 0x70, 0x12, 0x62,
-	0x0a, 0x15, 0x55, 0x70, 0x64, 0x61, 0x74, 0x65, 0x44, 0x61, 0x74, 0x61, 0x4e, 0x6f, 0x64, 0x65,
-	0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x12, 0x23, 0x2e, 0x6e, 0x61, 0x6d, 0x65, 0x6e, 0x6f,
-	0x64, 0x65, 0x5f, 0x2e, 0x55, 0x70, 0x64, 0x61, 0x74, 0x65, 0x44, 0x61, 0x74, 0x61, 0x4e, 0x6f,
-	0x64, 0x65, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x52, 0x65, 0x71, 0x1a, 0x24, 0x2e, 0x6e,
-	0x61, 0x6d, 0x65, 0x6e, 0x6f, 0x64, 0x65, 0x5f, 0x2e, 0x55, 0x70, 0x64, 0x61, 0x74, 0x65, 0x44,
-	0x61, 0x74, 0x61, 0x4e, 0x6f, 0x64, 0x65, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x52, 0x65,
-	0x73, 0x70, 0x42, 0x16, 0x5a, 0x14, 0x67, 0x6f, 0x2d, 0x66, 0x73, 0x2f, 0x70, 0x72, 0x6f, 0x74,
-	0x6f, 0x2f, 0x6e, 0x61, 0x6d, 0x65, 0x6e, 0x6f, 0x64, 0x65, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74,
-	0x6f, 0x33,
+	0x4d, 0x65, 0x74, 0x61, 0x44, 0x61, 0x74, 0x61, 0x4c, 0x69, 0x73, 0x74, 0x22, 0x4c, 0x0a, 0x0c,
+	0x57, 0x72, 0x69, 0x74, 0x65, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x20, 0x0a, 0x0b,
+	0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x4e, 0x75, 0x6d, 0x62, 0x65, 0x72, 0x18, 0x01, 0x20, 0x01, 0x28,
+	0x04, 0x52, 0x0b, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x4e, 0x75, 0x6d, 0x62, 0x65, 0x72, 0x12, 0x1a,
+	0x0a, 0x08, 0x66, 0x69, 0x6c, 0x65, 0x4e, 0x61, 0x6d, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09,
+	0x52, 0x08, 0x66, 0x69, 0x6c, 0x65, 0x4e, 0x61, 0x6d, 0x65, 0x22, 0x60, 0x0a, 0x0d, 0x57, 0x72,
+	0x69, 0x74, 0x65, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x4f, 0x0a, 0x14, 0x6e,
+	0x61, 0x6d, 0x65, 0x4e, 0x6f, 0x64, 0x65, 0x4d, 0x65, 0x74, 0x61, 0x44, 0x61, 0x74, 0x61, 0x4c,
+	0x69, 0x73, 0x74, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x1b, 0x2e, 0x6e, 0x61, 0x6d, 0x65,
+	0x6e, 0x6f, 0x64, 0x65, 0x5f, 0x2e, 0x4e, 0x61, 0x6d, 0x65, 0x4e, 0x6f, 0x64, 0x65, 0x4d, 0x65,
+	0x74, 0x61, 0x44, 0x61, 0x74, 0x61, 0x52, 0x14, 0x6e, 0x61, 0x6d, 0x65, 0x4e, 0x6f, 0x64, 0x65,
+	0x4d, 0x65, 0x74, 0x61, 0x44, 0x61, 0x74, 0x61, 0x4c, 0x69, 0x73, 0x74, 0x32, 0x95, 0x09, 0x0a,
+	0x0f, 0x4e, 0x61, 0x6d, 0x65, 0x4e, 0x6f, 0x64, 0x65, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65,
+	0x12, 0x2c, 0x0a, 0x03, 0x50, 0x75, 0x74, 0x12, 0x11, 0x2e, 0x6e, 0x61, 0x6d, 0x65, 0x6e, 0x6f,
+	0x64, 0x65, 0x5f, 0x2e, 0x50, 0x75, 0x74, 0x52, 0x65, 0x71, 0x1a, 0x12, 0x2e, 0x6e, 0x61, 0x6d,
+	0x65, 0x6e, 0x6f, 0x64, 0x65, 0x5f, 0x2e, 0x50, 0x75, 0x74, 0x52, 0x65, 0x73, 0x70, 0x12, 0x2c,
+	0x0a, 0x03, 0x47, 0x65, 0x74, 0x12, 0x11, 0x2e, 0x6e, 0x61, 0x6d, 0x65, 0x6e, 0x6f, 0x64, 0x65,
+	0x5f, 0x2e, 0x47, 0x65, 0x74, 0x52, 0x65, 0x71, 0x1a, 0x12, 0x2e, 0x6e, 0x61, 0x6d, 0x65, 0x6e,
+	0x6f, 0x64, 0x65, 0x5f, 0x2e, 0x47, 0x65, 0x74, 0x52, 0x65, 0x73, 0x70, 0x12, 0x4f, 0x0a, 0x0c,
+	0x47, 0x65, 0x74, 0x42, 0x6c, 0x6f, 0x63, 0x6b, 0x53, 0x69, 0x7a, 0x65, 0x12, 0x1e, 0x2e, 0x6e,
+	0x61, 0x6d, 0x65, 0x6e, 0x6f, 0x64, 0x65, 0x5f, 0x2e, 0x47, 0x65, 0x74, 0x42, 0x6c, 0x6f, 0x63,
+	0x6b, 0x53, 0x69, 0x7a, 0x65, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x1f, 0x2e, 0x6e,
+	0x61, 0x6d, 0x65, 0x6e, 0x6f, 0x64, 0x65, 0x5f, 0x2e, 0x47, 0x65, 0x74, 0x42, 0x6c, 0x6f, 0x63,
+	0x6b, 0x53, 0x69, 0x7a, 0x65, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x3a, 0x0a,
+	0x08, 0x52, 0x65, 0x61, 0x64, 0x44, 0x61, 0x74, 0x61, 0x12, 0x15, 0x2e, 0x6e, 0x61, 0x6d, 0x65,
+	0x6e, 0x6f, 0x64, 0x65, 0x5f, 0x2e, 0x52, 0x65, 0x61, 0x64, 0x52, 0x65, 0x71, 0x75, 0x73, 0x74,
+	0x1a, 0x17, 0x2e, 0x6e, 0x61, 0x6d, 0x65, 0x6e, 0x6f, 0x64, 0x65, 0x5f, 0x2e, 0x52, 0x65, 0x61,
+	0x64, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x3e, 0x0a, 0x09, 0x57, 0x72, 0x69,
+	0x74, 0x65, 0x44, 0x61, 0x74, 0x61, 0x12, 0x17, 0x2e, 0x6e, 0x61, 0x6d, 0x65, 0x6e, 0x6f, 0x64,
+	0x65, 0x5f, 0x2e, 0x57, 0x72, 0x69, 0x74, 0x65, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a,
+	0x18, 0x2e, 0x6e, 0x61, 0x6d, 0x65, 0x6e, 0x6f, 0x64, 0x65, 0x5f, 0x2e, 0x57, 0x72, 0x69, 0x74,
+	0x65, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x41, 0x0a, 0x0a, 0x44, 0x65, 0x6c,
+	0x65, 0x74, 0x65, 0x44, 0x61, 0x74, 0x61, 0x12, 0x18, 0x2e, 0x6e, 0x61, 0x6d, 0x65, 0x6e, 0x6f,
+	0x64, 0x65, 0x5f, 0x2e, 0x44, 0x65, 0x6c, 0x65, 0x74, 0x65, 0x44, 0x61, 0x74, 0x61, 0x52, 0x65,
+	0x71, 0x1a, 0x19, 0x2e, 0x6e, 0x61, 0x6d, 0x65, 0x6e, 0x6f, 0x64, 0x65, 0x5f, 0x2e, 0x44, 0x65,
+	0x6c, 0x65, 0x74, 0x65, 0x44, 0x61, 0x74, 0x61, 0x52, 0x65, 0x73, 0x70, 0x12, 0x3b, 0x0a, 0x08,
+	0x53, 0x74, 0x61, 0x74, 0x44, 0x61, 0x74, 0x61, 0x12, 0x16, 0x2e, 0x6e, 0x61, 0x6d, 0x65, 0x6e,
+	0x6f, 0x64, 0x65, 0x5f, 0x2e, 0x53, 0x74, 0x61, 0x74, 0x44, 0x61, 0x74, 0x61, 0x52, 0x65, 0x71,
+	0x1a, 0x17, 0x2e, 0x6e, 0x61, 0x6d, 0x65, 0x6e, 0x6f, 0x64, 0x65, 0x5f, 0x2e, 0x53, 0x74, 0x61,
+	0x74, 0x44, 0x61, 0x74, 0x61, 0x52, 0x65, 0x73, 0x70, 0x12, 0x47, 0x0a, 0x0c, 0x47, 0x65, 0x74,
+	0x44, 0x61, 0x74, 0x61, 0x4e, 0x6f, 0x64, 0x65, 0x73, 0x12, 0x1a, 0x2e, 0x6e, 0x61, 0x6d, 0x65,
+	0x6e, 0x6f, 0x64, 0x65, 0x5f, 0x2e, 0x47, 0x65, 0x74, 0x44, 0x61, 0x74, 0x61, 0x4e, 0x6f, 0x64,
+	0x65, 0x73, 0x52, 0x65, 0x71, 0x1a, 0x1b, 0x2e, 0x6e, 0x61, 0x6d, 0x65, 0x6e, 0x6f, 0x64, 0x65,
+	0x5f, 0x2e, 0x47, 0x65, 0x74, 0x44, 0x61, 0x74, 0x61, 0x4e, 0x6f, 0x64, 0x65, 0x73, 0x52, 0x65,
+	0x73, 0x70, 0x12, 0x32, 0x0a, 0x05, 0x49, 0x73, 0x44, 0x69, 0x72, 0x12, 0x13, 0x2e, 0x6e, 0x61,
+	0x6d, 0x65, 0x6e, 0x6f, 0x64, 0x65, 0x5f, 0x2e, 0x49, 0x73, 0x44, 0x69, 0x72, 0x52, 0x65, 0x71,
+	0x1a, 0x14, 0x2e, 0x6e, 0x61, 0x6d, 0x65, 0x6e, 0x6f, 0x64, 0x65, 0x5f, 0x2e, 0x49, 0x73, 0x44,
+	0x69, 0x72, 0x52, 0x65, 0x73, 0x70, 0x12, 0x35, 0x0a, 0x06, 0x52, 0x65, 0x6e, 0x61, 0x6d, 0x65,
+	0x12, 0x14, 0x2e, 0x6e, 0x61, 0x6d, 0x65, 0x6e, 0x6f, 0x64, 0x65, 0x5f, 0x2e, 0x52, 0x65, 0x6e,
+	0x61, 0x6d, 0x65, 0x52, 0x65, 0x71, 0x1a, 0x15, 0x2e, 0x6e, 0x61, 0x6d, 0x65, 0x6e, 0x6f, 0x64,
+	0x65, 0x5f, 0x2e, 0x52, 0x65, 0x6e, 0x61, 0x6d, 0x65, 0x52, 0x65, 0x73, 0x70, 0x12, 0x32, 0x0a,
+	0x05, 0x4d, 0x6b, 0x64, 0x69, 0x72, 0x12, 0x13, 0x2e, 0x6e, 0x61, 0x6d, 0x65, 0x6e, 0x6f, 0x64,
+	0x65, 0x5f, 0x2e, 0x4d, 0x6b, 0x64, 0x69, 0x72, 0x52, 0x65, 0x71, 0x1a, 0x14, 0x2e, 0x6e, 0x61,
+	0x6d, 0x65, 0x6e, 0x6f, 0x64, 0x65, 0x5f, 0x2e, 0x4d, 0x6b, 0x64, 0x69, 0x72, 0x52, 0x65, 0x73,
+	0x70, 0x12, 0x2f, 0x0a, 0x04, 0x4c, 0x69, 0x73, 0x74, 0x12, 0x12, 0x2e, 0x6e, 0x61, 0x6d, 0x65,
+	0x6e, 0x6f, 0x64, 0x65, 0x5f, 0x2e, 0x4c, 0x69, 0x73, 0x74, 0x52, 0x65, 0x71, 0x1a, 0x13, 0x2e,
+	0x6e, 0x61, 0x6d, 0x65, 0x6e, 0x6f, 0x64, 0x65, 0x5f, 0x2e, 0x4c, 0x69, 0x73, 0x74, 0x52, 0x65,
+	0x73, 0x70, 0x12, 0x3e, 0x0a, 0x09, 0x52, 0x65, 0x44, 0x69, 0x72, 0x54, 0x72, 0x65, 0x65, 0x12,
+	0x17, 0x2e, 0x6e, 0x61, 0x6d, 0x65, 0x6e, 0x6f, 0x64, 0x65, 0x5f, 0x2e, 0x52, 0x65, 0x44, 0x69,
+	0x72, 0x54, 0x72, 0x65, 0x65, 0x52, 0x65, 0x71, 0x1a, 0x18, 0x2e, 0x6e, 0x61, 0x6d, 0x65, 0x6e,
+	0x6f, 0x64, 0x65, 0x5f, 0x2e, 0x52, 0x65, 0x44, 0x69, 0x72, 0x54, 0x72, 0x65, 0x65, 0x52, 0x65,
+	0x73, 0x70, 0x12, 0x3e, 0x0a, 0x09, 0x48, 0x65, 0x61, 0x72, 0x74, 0x42, 0x65, 0x61, 0x74, 0x12,
+	0x17, 0x2e, 0x6e, 0x61, 0x6d, 0x65, 0x6e, 0x6f, 0x64, 0x65, 0x5f, 0x2e, 0x48, 0x65, 0x61, 0x72,
+	0x74, 0x42, 0x65, 0x61, 0x74, 0x52, 0x65, 0x71, 0x1a, 0x18, 0x2e, 0x6e, 0x61, 0x6d, 0x65, 0x6e,
+	0x6f, 0x64, 0x65, 0x5f, 0x2e, 0x48, 0x65, 0x61, 0x72, 0x74, 0x42, 0x65, 0x61, 0x74, 0x52, 0x65,
+	0x73, 0x70, 0x12, 0x53, 0x0a, 0x10, 0x52, 0x65, 0x67, 0x69, 0x73, 0x74, 0x65, 0x72, 0x44, 0x61,
+	0x74, 0x61, 0x4e, 0x6f, 0x64, 0x65, 0x12, 0x1e, 0x2e, 0x6e, 0x61, 0x6d, 0x65, 0x6e, 0x6f, 0x64,
+	0x65, 0x5f, 0x2e, 0x52, 0x65, 0x67, 0x69, 0x73, 0x74, 0x65, 0x72, 0x44, 0x61, 0x74, 0x61, 0x4e,
+	0x6f, 0x64, 0x65, 0x52, 0x65, 0x71, 0x1a, 0x1f, 0x2e, 0x6e, 0x61, 0x6d, 0x65, 0x6e, 0x6f, 0x64,
+	0x65, 0x5f, 0x2e, 0x52, 0x65, 0x67, 0x69, 0x73, 0x74, 0x65, 0x72, 0x44, 0x61, 0x74, 0x61, 0x4e,
+	0x6f, 0x64, 0x65, 0x52, 0x65, 0x73, 0x70, 0x12, 0x44, 0x0a, 0x0b, 0x4a, 0x6f, 0x69, 0x6e, 0x43,
+	0x6c, 0x75, 0x73, 0x74, 0x65, 0x72, 0x12, 0x19, 0x2e, 0x6e, 0x61, 0x6d, 0x65, 0x6e, 0x6f, 0x64,
+	0x65, 0x5f, 0x2e, 0x4a, 0x6f, 0x69, 0x6e, 0x43, 0x6c, 0x75, 0x73, 0x74, 0x65, 0x72, 0x52, 0x65,
+	0x71, 0x1a, 0x1a, 0x2e, 0x6e, 0x61, 0x6d, 0x65, 0x6e, 0x6f, 0x64, 0x65, 0x5f, 0x2e, 0x4a, 0x6f,
+	0x69, 0x6e, 0x43, 0x6c, 0x75, 0x73, 0x74, 0x65, 0x72, 0x52, 0x65, 0x73, 0x70, 0x12, 0x41, 0x0a,
+	0x0a, 0x46, 0x69, 0x6e, 0x64, 0x4c, 0x65, 0x61, 0x64, 0x65, 0x72, 0x12, 0x18, 0x2e, 0x6e, 0x61,
+	0x6d, 0x65, 0x6e, 0x6f, 0x64, 0x65, 0x5f, 0x2e, 0x46, 0x69, 0x6e, 0x64, 0x4c, 0x65, 0x61, 0x64,
+	0x65, 0x72, 0x52, 0x65, 0x71, 0x1a, 0x19, 0x2e, 0x6e, 0x61, 0x6d, 0x65, 0x6e, 0x6f, 0x64, 0x65,
+	0x5f, 0x2e, 0x46, 0x69, 0x6e, 0x64, 0x4c, 0x65, 0x61, 0x64, 0x65, 0x72, 0x52, 0x65, 0x73, 0x70,
+	0x12, 0x62, 0x0a, 0x15, 0x55, 0x70, 0x64, 0x61, 0x74, 0x65, 0x44, 0x61, 0x74, 0x61, 0x4e, 0x6f,
+	0x64, 0x65, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x12, 0x23, 0x2e, 0x6e, 0x61, 0x6d, 0x65,
+	0x6e, 0x6f, 0x64, 0x65, 0x5f, 0x2e, 0x55, 0x70, 0x64, 0x61, 0x74, 0x65, 0x44, 0x61, 0x74, 0x61,
+	0x4e, 0x6f, 0x64, 0x65, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x52, 0x65, 0x71, 0x1a, 0x24,
+	0x2e, 0x6e, 0x61, 0x6d, 0x65, 0x6e, 0x6f, 0x64, 0x65, 0x5f, 0x2e, 0x55, 0x70, 0x64, 0x61, 0x74,
+	0x65, 0x44, 0x61, 0x74, 0x61, 0x4e, 0x6f, 0x64, 0x65, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65,
+	0x52, 0x65, 0x73, 0x70, 0x42, 0x16, 0x5a, 0x14, 0x67, 0x6f, 0x2d, 0x66, 0x73, 0x2f, 0x70, 0x72,
+	0x6f, 0x74, 0x6f, 0x2f, 0x6e, 0x61, 0x6d, 0x65, 0x6e, 0x6f, 0x64, 0x65, 0x62, 0x06, 0x70, 0x72,
+	0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -1961,86 +2181,96 @@ func file_proto_namenode_namenode_proto_rawDescGZIP() []byte {
 	return file_proto_namenode_namenode_proto_rawDescData
 }
 
-var file_proto_namenode_namenode_proto_msgTypes = make([]protoimpl.MessageInfo, 34)
+var file_proto_namenode_namenode_proto_msgTypes = make([]protoimpl.MessageInfo, 38)
 var file_proto_namenode_namenode_proto_goTypes = []interface{}{
-	(*FindLeaderReq)(nil),             // 0: namenode_.FindLeaderReq
-	(*FindLeaderResp)(nil),            // 1: namenode_.FindLeaderResp
-	(*JoinClusterReq)(nil),            // 2: namenode_.JoinClusterReq
-	(*JoinClusterResp)(nil),           // 3: namenode_.JoinClusterResp
-	(*UpdateDataNodeMessageReq)(nil),  // 4: namenode_.UpdateDataNodeMessageReq
-	(*UpdateDataNodeMessageResp)(nil), // 5: namenode_.UpdateDataNodeMessageResp
-	(*RegisterDataNodeReq)(nil),       // 6: namenode_.RegisterDataNodeReq
-	(*RegisterDataNodeResp)(nil),      // 7: namenode_.RegisterDataNodeResp
-	(*HeartBeatReq)(nil),              // 8: namenode_.HeartBeatReq
-	(*HeartBeatResp)(nil),             // 9: namenode_.HeartBeatResp
-	(*ListReq)(nil),                   // 10: namenode_.ListReq
-	(*ListResp)(nil),                  // 11: namenode_.ListResp
-	(*MkdirReq)(nil),                  // 12: namenode_.MkdirReq
-	(*MkdirResp)(nil),                 // 13: namenode_.MkdirResp
-	(*ReDirTreeReq)(nil),              // 14: namenode_.ReDirTreeReq
-	(*ReDirTreeResp)(nil),             // 15: namenode_.ReDirTreeResp
-	(*RenameReq)(nil),                 // 16: namenode_.RenameReq
-	(*RenameResp)(nil),                // 17: namenode_.RenameResp
-	(*IsDirReq)(nil),                  // 18: namenode_.IsDirReq
-	(*IsDirResp)(nil),                 // 19: namenode_.IsDirResp
-	(*GetDataNodesReq)(nil),           // 20: namenode_.GetDataNodesReq
-	(*GetDataNodesResp)(nil),          // 21: namenode_.GetDataNodesResp
-	(*StatDataReq)(nil),               // 22: namenode_.StatDataReq
-	(*StatDataResp)(nil),              // 23: namenode_.StatDataResp
-	(*DeleteDataReq)(nil),             // 24: namenode_.DeleteDataReq
-	(*DeleteDataResp)(nil),            // 25: namenode_.DeleteDataResp
-	(*DataNodeInstance)(nil),          // 26: namenode_.DataNodeInstance
-	(*NameNodeMetaData)(nil),          // 27: namenode_.NameNodeMetaData
-	(*GetBlockSizeRequest)(nil),       // 28: namenode_.GetBlockSizeRequest
-	(*GetBlockSizeResponse)(nil),      // 29: namenode_.GetBlockSizeResponse
-	(*ReadRequst)(nil),                // 30: namenode_.ReadRequst
-	(*ReadResponse)(nil),              // 31: namenode_.ReadResponse
-	(*WriteRequest)(nil),              // 32: namenode_.WriteRequest
-	(*WriteResponse)(nil),             // 33: namenode_.WriteResponse
+	(*PutReq)(nil),                    // 0: namenode_.PutReq
+	(*PutResp)(nil),                   // 1: namenode_.PutResp
+	(*GetReq)(nil),                    // 2: namenode_.GetReq
+	(*GetResp)(nil),                   // 3: namenode_.GetResp
+	(*FindLeaderReq)(nil),             // 4: namenode_.FindLeaderReq
+	(*FindLeaderResp)(nil),            // 5: namenode_.FindLeaderResp
+	(*JoinClusterReq)(nil),            // 6: namenode_.JoinClusterReq
+	(*JoinClusterResp)(nil),           // 7: namenode_.JoinClusterResp
+	(*UpdateDataNodeMessageReq)(nil),  // 8: namenode_.UpdateDataNodeMessageReq
+	(*UpdateDataNodeMessageResp)(nil), // 9: namenode_.UpdateDataNodeMessageResp
+	(*RegisterDataNodeReq)(nil),       // 10: namenode_.RegisterDataNodeReq
+	(*RegisterDataNodeResp)(nil),      // 11: namenode_.RegisterDataNodeResp
+	(*HeartBeatReq)(nil),              // 12: namenode_.HeartBeatReq
+	(*HeartBeatResp)(nil),             // 13: namenode_.HeartBeatResp
+	(*ListReq)(nil),                   // 14: namenode_.ListReq
+	(*ListResp)(nil),                  // 15: namenode_.ListResp
+	(*MkdirReq)(nil),                  // 16: namenode_.MkdirReq
+	(*MkdirResp)(nil),                 // 17: namenode_.MkdirResp
+	(*ReDirTreeReq)(nil),              // 18: namenode_.ReDirTreeReq
+	(*ReDirTreeResp)(nil),             // 19: namenode_.ReDirTreeResp
+	(*RenameReq)(nil),                 // 20: namenode_.RenameReq
+	(*RenameResp)(nil),                // 21: namenode_.RenameResp
+	(*IsDirReq)(nil),                  // 22: namenode_.IsDirReq
+	(*IsDirResp)(nil),                 // 23: namenode_.IsDirResp
+	(*GetDataNodesReq)(nil),           // 24: namenode_.GetDataNodesReq
+	(*GetDataNodesResp)(nil),          // 25: namenode_.GetDataNodesResp
+	(*StatDataReq)(nil),               // 26: namenode_.StatDataReq
+	(*StatDataResp)(nil),              // 27: namenode_.StatDataResp
+	(*DeleteDataReq)(nil),             // 28: namenode_.DeleteDataReq
+	(*DeleteDataResp)(nil),            // 29: namenode_.DeleteDataResp
+	(*DataNodeInstance)(nil),          // 30: namenode_.DataNodeInstance
+	(*NameNodeMetaData)(nil),          // 31: namenode_.NameNodeMetaData
+	(*GetBlockSizeRequest)(nil),       // 32: namenode_.GetBlockSizeRequest
+	(*GetBlockSizeResponse)(nil),      // 33: namenode_.GetBlockSizeResponse
+	(*ReadRequst)(nil),                // 34: namenode_.ReadRequst
+	(*ReadResponse)(nil),              // 35: namenode_.ReadResponse
+	(*WriteRequest)(nil),              // 36: namenode_.WriteRequest
+	(*WriteResponse)(nil),             // 37: namenode_.WriteResponse
 }
 var file_proto_namenode_namenode_proto_depIdxs = []int32{
-	27, // 0: namenode_.StatDataResp.nameNodeMetaDataList:type_name -> namenode_.NameNodeMetaData
-	27, // 1: namenode_.DeleteDataResp.nameNodeMetaDataList:type_name -> namenode_.NameNodeMetaData
-	26, // 2: namenode_.NameNodeMetaData.blockAddresses:type_name -> namenode_.DataNodeInstance
-	27, // 3: namenode_.ReadResponse.nameNodeMetaDataList:type_name -> namenode_.NameNodeMetaData
-	27, // 4: namenode_.WriteResponse.nameNodeMetaDataList:type_name -> namenode_.NameNodeMetaData
-	28, // 5: namenode_.NameNodeService.GetBlockSize:input_type -> namenode_.GetBlockSizeRequest
-	30, // 6: namenode_.NameNodeService.ReadData:input_type -> namenode_.ReadRequst
-	32, // 7: namenode_.NameNodeService.WriteData:input_type -> namenode_.WriteRequest
-	24, // 8: namenode_.NameNodeService.DeleteData:input_type -> namenode_.DeleteDataReq
-	22, // 9: namenode_.NameNodeService.StatData:input_type -> namenode_.StatDataReq
-	20, // 10: namenode_.NameNodeService.GetDataNodes:input_type -> namenode_.GetDataNodesReq
-	18, // 11: namenode_.NameNodeService.IsDir:input_type -> namenode_.IsDirReq
-	16, // 12: namenode_.NameNodeService.Rename:input_type -> namenode_.RenameReq
-	12, // 13: namenode_.NameNodeService.Mkdir:input_type -> namenode_.MkdirReq
-	10, // 14: namenode_.NameNodeService.List:input_type -> namenode_.ListReq
-	14, // 15: namenode_.NameNodeService.ReDirTree:input_type -> namenode_.ReDirTreeReq
-	8,  // 16: namenode_.NameNodeService.HeartBeat:input_type -> namenode_.HeartBeatReq
-	6,  // 17: namenode_.NameNodeService.RegisterDataNode:input_type -> namenode_.RegisterDataNodeReq
-	2,  // 18: namenode_.NameNodeService.JoinCluster:input_type -> namenode_.JoinClusterReq
-	0,  // 19: namenode_.NameNodeService.FindLeader:input_type -> namenode_.FindLeaderReq
-	4,  // 20: namenode_.NameNodeService.UpdateDataNodeMessage:input_type -> namenode_.UpdateDataNodeMessageReq
-	29, // 21: namenode_.NameNodeService.GetBlockSize:output_type -> namenode_.GetBlockSizeResponse
-	31, // 22: namenode_.NameNodeService.ReadData:output_type -> namenode_.ReadResponse
-	33, // 23: namenode_.NameNodeService.WriteData:output_type -> namenode_.WriteResponse
-	25, // 24: namenode_.NameNodeService.DeleteData:output_type -> namenode_.DeleteDataResp
-	23, // 25: namenode_.NameNodeService.StatData:output_type -> namenode_.StatDataResp
-	21, // 26: namenode_.NameNodeService.GetDataNodes:output_type -> namenode_.GetDataNodesResp
-	19, // 27: namenode_.NameNodeService.IsDir:output_type -> namenode_.IsDirResp
-	17, // 28: namenode_.NameNodeService.Rename:output_type -> namenode_.RenameResp
-	13, // 29: namenode_.NameNodeService.Mkdir:output_type -> namenode_.MkdirResp
-	11, // 30: namenode_.NameNodeService.List:output_type -> namenode_.ListResp
-	15, // 31: namenode_.NameNodeService.ReDirTree:output_type -> namenode_.ReDirTreeResp
-	9,  // 32: namenode_.NameNodeService.HeartBeat:output_type -> namenode_.HeartBeatResp
-	7,  // 33: namenode_.NameNodeService.RegisterDataNode:output_type -> namenode_.RegisterDataNodeResp
-	3,  // 34: namenode_.NameNodeService.JoinCluster:output_type -> namenode_.JoinClusterResp
-	1,  // 35: namenode_.NameNodeService.FindLeader:output_type -> namenode_.FindLeaderResp
-	5,  // 36: namenode_.NameNodeService.UpdateDataNodeMessage:output_type -> namenode_.UpdateDataNodeMessageResp
-	21, // [21:37] is the sub-list for method output_type
-	5,  // [5:21] is the sub-list for method input_type
-	5,  // [5:5] is the sub-list for extension type_name
-	5,  // [5:5] is the sub-list for extension extendee
-	0,  // [0:5] is the sub-list for field type_name
+	31, // 0: namenode_.PutResp.nameNodeMetaDataList:type_name -> namenode_.NameNodeMetaData
+	31, // 1: namenode_.GetResp.nameNodeMetaDataList:type_name -> namenode_.NameNodeMetaData
+	31, // 2: namenode_.StatDataResp.nameNodeMetaDataList:type_name -> namenode_.NameNodeMetaData
+	31, // 3: namenode_.DeleteDataResp.nameNodeMetaDataList:type_name -> namenode_.NameNodeMetaData
+	30, // 4: namenode_.NameNodeMetaData.blockAddresses:type_name -> namenode_.DataNodeInstance
+	31, // 5: namenode_.ReadResponse.nameNodeMetaDataList:type_name -> namenode_.NameNodeMetaData
+	31, // 6: namenode_.WriteResponse.nameNodeMetaDataList:type_name -> namenode_.NameNodeMetaData
+	0,  // 7: namenode_.NameNodeService.Put:input_type -> namenode_.PutReq
+	2,  // 8: namenode_.NameNodeService.Get:input_type -> namenode_.GetReq
+	32, // 9: namenode_.NameNodeService.GetBlockSize:input_type -> namenode_.GetBlockSizeRequest
+	34, // 10: namenode_.NameNodeService.ReadData:input_type -> namenode_.ReadRequst
+	36, // 11: namenode_.NameNodeService.WriteData:input_type -> namenode_.WriteRequest
+	28, // 12: namenode_.NameNodeService.DeleteData:input_type -> namenode_.DeleteDataReq
+	26, // 13: namenode_.NameNodeService.StatData:input_type -> namenode_.StatDataReq
+	24, // 14: namenode_.NameNodeService.GetDataNodes:input_type -> namenode_.GetDataNodesReq
+	22, // 15: namenode_.NameNodeService.IsDir:input_type -> namenode_.IsDirReq
+	20, // 16: namenode_.NameNodeService.Rename:input_type -> namenode_.RenameReq
+	16, // 17: namenode_.NameNodeService.Mkdir:input_type -> namenode_.MkdirReq
+	14, // 18: namenode_.NameNodeService.List:input_type -> namenode_.ListReq
+	18, // 19: namenode_.NameNodeService.ReDirTree:input_type -> namenode_.ReDirTreeReq
+	12, // 20: namenode_.NameNodeService.HeartBeat:input_type -> namenode_.HeartBeatReq
+	10, // 21: namenode_.NameNodeService.RegisterDataNode:input_type -> namenode_.RegisterDataNodeReq
+	6,  // 22: namenode_.NameNodeService.JoinCluster:input_type -> namenode_.JoinClusterReq
+	4,  // 23: namenode_.NameNodeService.FindLeader:input_type -> namenode_.FindLeaderReq
+	8,  // 24: namenode_.NameNodeService.UpdateDataNodeMessage:input_type -> namenode_.UpdateDataNodeMessageReq
+	1,  // 25: namenode_.NameNodeService.Put:output_type -> namenode_.PutResp
+	3,  // 26: namenode_.NameNodeService.Get:output_type -> namenode_.GetResp
+	33, // 27: namenode_.NameNodeService.GetBlockSize:output_type -> namenode_.GetBlockSizeResponse
+	35, // 28: namenode_.NameNodeService.ReadData:output_type -> namenode_.ReadResponse
+	37, // 29: namenode_.NameNodeService.WriteData:output_type -> namenode_.WriteResponse
+	29, // 30: namenode_.NameNodeService.DeleteData:output_type -> namenode_.DeleteDataResp
+	27, // 31: namenode_.NameNodeService.StatData:output_type -> namenode_.StatDataResp
+	25, // 32: namenode_.NameNodeService.GetDataNodes:output_type -> namenode_.GetDataNodesResp
+	23, // 33: namenode_.NameNodeService.IsDir:output_type -> namenode_.IsDirResp
+	21, // 34: namenode_.NameNodeService.Rename:output_type -> namenode_.RenameResp
+	17, // 35: namenode_.NameNodeService.Mkdir:output_type -> namenode_.MkdirResp
+	15, // 36: namenode_.NameNodeService.List:output_type -> namenode_.ListResp
+	19, // 37: namenode_.NameNodeService.ReDirTree:output_type -> namenode_.ReDirTreeResp
+	13, // 38: namenode_.NameNodeService.HeartBeat:output_type -> namenode_.HeartBeatResp
+	11, // 39: namenode_.NameNodeService.RegisterDataNode:output_type -> namenode_.RegisterDataNodeResp
+	7,  // 40: namenode_.NameNodeService.JoinCluster:output_type -> namenode_.JoinClusterResp
+	5,  // 41: namenode_.NameNodeService.FindLeader:output_type -> namenode_.FindLeaderResp
+	9,  // 42: namenode_.NameNodeService.UpdateDataNodeMessage:output_type -> namenode_.UpdateDataNodeMessageResp
+	25, // [25:43] is the sub-list for method output_type
+	7,  // [7:25] is the sub-list for method input_type
+	7,  // [7:7] is the sub-list for extension type_name
+	7,  // [7:7] is the sub-list for extension extendee
+	0,  // [0:7] is the sub-list for field type_name
 }
 
 func init() { file_proto_namenode_namenode_proto_init() }
@@ -2050,7 +2280,7 @@ func file_proto_namenode_namenode_proto_init() {
 	}
 	if !protoimpl.UnsafeEnabled {
 		file_proto_namenode_namenode_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*FindLeaderReq); i {
+			switch v := v.(*PutReq); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2062,7 +2292,7 @@ func file_proto_namenode_namenode_proto_init() {
 			}
 		}
 		file_proto_namenode_namenode_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*FindLeaderResp); i {
+			switch v := v.(*PutResp); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2074,7 +2304,7 @@ func file_proto_namenode_namenode_proto_init() {
 			}
 		}
 		file_proto_namenode_namenode_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*JoinClusterReq); i {
+			switch v := v.(*GetReq); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2086,7 +2316,7 @@ func file_proto_namenode_namenode_proto_init() {
 			}
 		}
 		file_proto_namenode_namenode_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*JoinClusterResp); i {
+			switch v := v.(*GetResp); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2098,7 +2328,7 @@ func file_proto_namenode_namenode_proto_init() {
 			}
 		}
 		file_proto_namenode_namenode_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*UpdateDataNodeMessageReq); i {
+			switch v := v.(*FindLeaderReq); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2110,7 +2340,7 @@ func file_proto_namenode_namenode_proto_init() {
 			}
 		}
 		file_proto_namenode_namenode_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*UpdateDataNodeMessageResp); i {
+			switch v := v.(*FindLeaderResp); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2122,7 +2352,7 @@ func file_proto_namenode_namenode_proto_init() {
 			}
 		}
 		file_proto_namenode_namenode_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*RegisterDataNodeReq); i {
+			switch v := v.(*JoinClusterReq); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2134,7 +2364,7 @@ func file_proto_namenode_namenode_proto_init() {
 			}
 		}
 		file_proto_namenode_namenode_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*RegisterDataNodeResp); i {
+			switch v := v.(*JoinClusterResp); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2146,7 +2376,7 @@ func file_proto_namenode_namenode_proto_init() {
 			}
 		}
 		file_proto_namenode_namenode_proto_msgTypes[8].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*HeartBeatReq); i {
+			switch v := v.(*UpdateDataNodeMessageReq); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2158,7 +2388,7 @@ func file_proto_namenode_namenode_proto_init() {
 			}
 		}
 		file_proto_namenode_namenode_proto_msgTypes[9].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*HeartBeatResp); i {
+			switch v := v.(*UpdateDataNodeMessageResp); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2170,7 +2400,7 @@ func file_proto_namenode_namenode_proto_init() {
 			}
 		}
 		file_proto_namenode_namenode_proto_msgTypes[10].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ListReq); i {
+			switch v := v.(*RegisterDataNodeReq); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2182,7 +2412,7 @@ func file_proto_namenode_namenode_proto_init() {
 			}
 		}
 		file_proto_namenode_namenode_proto_msgTypes[11].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ListResp); i {
+			switch v := v.(*RegisterDataNodeResp); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2194,7 +2424,7 @@ func file_proto_namenode_namenode_proto_init() {
 			}
 		}
 		file_proto_namenode_namenode_proto_msgTypes[12].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*MkdirReq); i {
+			switch v := v.(*HeartBeatReq); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2206,7 +2436,7 @@ func file_proto_namenode_namenode_proto_init() {
 			}
 		}
 		file_proto_namenode_namenode_proto_msgTypes[13].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*MkdirResp); i {
+			switch v := v.(*HeartBeatResp); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2218,7 +2448,7 @@ func file_proto_namenode_namenode_proto_init() {
 			}
 		}
 		file_proto_namenode_namenode_proto_msgTypes[14].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ReDirTreeReq); i {
+			switch v := v.(*ListReq); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2230,7 +2460,7 @@ func file_proto_namenode_namenode_proto_init() {
 			}
 		}
 		file_proto_namenode_namenode_proto_msgTypes[15].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ReDirTreeResp); i {
+			switch v := v.(*ListResp); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2242,7 +2472,7 @@ func file_proto_namenode_namenode_proto_init() {
 			}
 		}
 		file_proto_namenode_namenode_proto_msgTypes[16].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*RenameReq); i {
+			switch v := v.(*MkdirReq); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2254,7 +2484,7 @@ func file_proto_namenode_namenode_proto_init() {
 			}
 		}
 		file_proto_namenode_namenode_proto_msgTypes[17].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*RenameResp); i {
+			switch v := v.(*MkdirResp); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2266,7 +2496,7 @@ func file_proto_namenode_namenode_proto_init() {
 			}
 		}
 		file_proto_namenode_namenode_proto_msgTypes[18].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*IsDirReq); i {
+			switch v := v.(*ReDirTreeReq); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2278,7 +2508,7 @@ func file_proto_namenode_namenode_proto_init() {
 			}
 		}
 		file_proto_namenode_namenode_proto_msgTypes[19].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*IsDirResp); i {
+			switch v := v.(*ReDirTreeResp); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2290,7 +2520,7 @@ func file_proto_namenode_namenode_proto_init() {
 			}
 		}
 		file_proto_namenode_namenode_proto_msgTypes[20].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*GetDataNodesReq); i {
+			switch v := v.(*RenameReq); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2302,7 +2532,7 @@ func file_proto_namenode_namenode_proto_init() {
 			}
 		}
 		file_proto_namenode_namenode_proto_msgTypes[21].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*GetDataNodesResp); i {
+			switch v := v.(*RenameResp); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2314,7 +2544,7 @@ func file_proto_namenode_namenode_proto_init() {
 			}
 		}
 		file_proto_namenode_namenode_proto_msgTypes[22].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*StatDataReq); i {
+			switch v := v.(*IsDirReq); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2326,7 +2556,7 @@ func file_proto_namenode_namenode_proto_init() {
 			}
 		}
 		file_proto_namenode_namenode_proto_msgTypes[23].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*StatDataResp); i {
+			switch v := v.(*IsDirResp); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2338,7 +2568,7 @@ func file_proto_namenode_namenode_proto_init() {
 			}
 		}
 		file_proto_namenode_namenode_proto_msgTypes[24].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*DeleteDataReq); i {
+			switch v := v.(*GetDataNodesReq); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2350,7 +2580,7 @@ func file_proto_namenode_namenode_proto_init() {
 			}
 		}
 		file_proto_namenode_namenode_proto_msgTypes[25].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*DeleteDataResp); i {
+			switch v := v.(*GetDataNodesResp); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2362,7 +2592,7 @@ func file_proto_namenode_namenode_proto_init() {
 			}
 		}
 		file_proto_namenode_namenode_proto_msgTypes[26].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*DataNodeInstance); i {
+			switch v := v.(*StatDataReq); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2374,7 +2604,7 @@ func file_proto_namenode_namenode_proto_init() {
 			}
 		}
 		file_proto_namenode_namenode_proto_msgTypes[27].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*NameNodeMetaData); i {
+			switch v := v.(*StatDataResp); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2386,7 +2616,7 @@ func file_proto_namenode_namenode_proto_init() {
 			}
 		}
 		file_proto_namenode_namenode_proto_msgTypes[28].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*GetBlockSizeRequest); i {
+			switch v := v.(*DeleteDataReq); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2398,7 +2628,7 @@ func file_proto_namenode_namenode_proto_init() {
 			}
 		}
 		file_proto_namenode_namenode_proto_msgTypes[29].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*GetBlockSizeResponse); i {
+			switch v := v.(*DeleteDataResp); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2410,7 +2640,7 @@ func file_proto_namenode_namenode_proto_init() {
 			}
 		}
 		file_proto_namenode_namenode_proto_msgTypes[30].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ReadRequst); i {
+			switch v := v.(*DataNodeInstance); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2422,7 +2652,7 @@ func file_proto_namenode_namenode_proto_init() {
 			}
 		}
 		file_proto_namenode_namenode_proto_msgTypes[31].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ReadResponse); i {
+			switch v := v.(*NameNodeMetaData); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2434,7 +2664,7 @@ func file_proto_namenode_namenode_proto_init() {
 			}
 		}
 		file_proto_namenode_namenode_proto_msgTypes[32].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*WriteRequest); i {
+			switch v := v.(*GetBlockSizeRequest); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2446,6 +2676,54 @@ func file_proto_namenode_namenode_proto_init() {
 			}
 		}
 		file_proto_namenode_namenode_proto_msgTypes[33].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*GetBlockSizeResponse); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_proto_namenode_namenode_proto_msgTypes[34].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ReadRequst); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_proto_namenode_namenode_proto_msgTypes[35].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ReadResponse); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_proto_namenode_namenode_proto_msgTypes[36].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*WriteRequest); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_proto_namenode_namenode_proto_msgTypes[37].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*WriteResponse); i {
 			case 0:
 				return &v.state
@@ -2464,7 +2742,7 @@ func file_proto_namenode_namenode_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_proto_namenode_namenode_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   34,
+			NumMessages:   38,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

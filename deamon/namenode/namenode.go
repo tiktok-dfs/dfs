@@ -160,11 +160,11 @@ func newRaft(master bool, follow, myID, myAddress string, fsm raft.FSM) (*raft.R
 			return nil, nil, fmt.Errorf("raft.Raft.BootstrapCluster: %v", err)
 		}
 	} else if follow != "" {
-		leader, err := FindLeader(follow)
+		findLeader, err := FindLeader(follow)
 		if err != nil {
 			return nil, nil, err
 		}
-		conn, err := grpc.Dial(leader, grpc.WithTransportCredentials(insecure.NewCredentials()))
+		conn, err := grpc.Dial(findLeader, grpc.WithTransportCredentials(insecure.NewCredentials()))
 		if err != nil {
 			return nil, nil, err
 		}
@@ -201,7 +201,10 @@ func FindLeader(addrList string) (string, error) {
 		break
 	}
 	if res == "" {
-		return "", errors.New("there is no alive name node")
+		err := errors.New("there is no alive name node")
+		if err != nil {
+			return "", err
+		}
 	}
 	return res, nil
 }

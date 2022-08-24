@@ -110,7 +110,7 @@ func (s *Server) Put(c context.Context, req *dn.PutReq) (*dn.PutResp, error) {
 	defer fileWriteHandler.Close()
 
 	fileWriter := bufio.NewWriter(fileWriteHandler)
-	_, err = fileWriter.WriteString(req.Data)
+	_, err = fileWriter.WriteString(string(req.Data))
 	util.Check(err)
 	fileWriter.Flush()
 	resp := dn.PutResp{Success: true}
@@ -124,7 +124,7 @@ func (s *Server) Get(c context.Context, req *dn.GetReq) (*dn.GetResp, error) {
 	if err != nil {
 		return &dn.GetResp{}, err
 	}
-	return &dn.GetResp{Data: string(dataBytes)}, nil
+	return &dn.GetResp{Data: dataBytes}, nil
 }
 
 func (s *Server) Delete(c context.Context, req *dn.DeleteReq) (*dn.DeleteResp, error) {

@@ -65,7 +65,7 @@ message HeartBeatResp{
 message PutReq {
   string Path = 1;
   string BlockId = 2;
-  string Data = 3;
+  bytes Data = 3;
   repeated DataNodeInstance ReplicationNodes = 4;
   //有一个数组参数：副本DataNode节点
 }
@@ -84,7 +84,7 @@ message GetReq {
 }
 
 message GetResp {
-  string Data = 1;
+  bytes Data = 1;
 }
 
 message RenameReq {

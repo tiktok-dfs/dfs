@@ -4,6 +4,10 @@ package namenode_;
 option go_package = 	"go-fs/proto/namenode";
 
 service NameNodeService {
+  //EC
+  rpc Put(PutReq) returns (PutResp);
+  rpc Get(GetReq) returns (GetResp);
+
   rpc GetBlockSize(GetBlockSizeRequest) returns (GetBlockSizeResponse);
   rpc ReadData(ReadRequst) returns (ReadResponse);
   rpc WriteData(WriteRequest) returns (WriteResponse);
@@ -20,6 +24,23 @@ service NameNodeService {
   rpc JoinCluster(JoinClusterReq) returns (JoinClusterResp);
   rpc FindLeader(FindLeaderReq) returns (FindLeaderResp);
   rpc UpdateDataNodeMessage(UpdateDataNodeMessageReq) returns (UpdateDataNodeMessageResp);
+}
+
+message PutReq {
+  string fileName = 1;
+  uint64 fileSize = 2;
+}
+
+message PutResp {
+  repeated NameNodeMetaData nameNodeMetaDataList = 1;
+}
+
+message GetReq {
+  string fileName = 1;
+}
+
+message GetResp {
+  repeated NameNodeMetaData nameNodeMetaDataList = 1;
 }
 
 message FindLeaderReq {
@@ -165,8 +186,8 @@ message ReadResponse {
 }
 
 message WriteRequest {
-	string fileName = 1;
-	uint64 fileSize = 2;
+  uint64 blockNumber = 1;
+	string fileName = 2;
 }
 
 message WriteResponse {
