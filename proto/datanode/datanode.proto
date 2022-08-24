@@ -25,6 +25,7 @@ service DataNode {
 
 message StatReq {
   string BlockId = 1;
+  string PrePath = 2;
 }
 
 message StatResp {
@@ -34,6 +35,7 @@ message StatResp {
 
 message DeleteReq {
   string BlockId = 1;
+  string PrePath = 2;
 }
 
 message DeleteResp {
@@ -65,7 +67,7 @@ message HeartBeatResp{
 message PutReq {
   string Path = 1;
   string BlockId = 2;
-  string Data = 3;
+  bytes Data = 3;
   repeated DataNodeInstance ReplicationNodes = 4;
   //有一个数组参数：副本DataNode节点
 }
@@ -80,11 +82,12 @@ message PutResp {
 }
 
 message GetReq {
+  string prePath = 2;
   string BlockId = 1;
 }
 
 message GetResp {
-  string Data = 1;
+  bytes Data = 1;
 }
 
 message RenameReq {

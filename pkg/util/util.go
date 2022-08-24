@@ -62,3 +62,18 @@ func ModPath(path string) string {
 	}
 	return path
 }
+
+// GetPrePath 获取文件名的前缀路径
+func GetPrePath(filename string) string {
+	if strings.HasPrefix(filename, "/") {
+		filename = filename[len("/"):]
+	}
+	split := strings.Split(filename, "/")
+	res := ""
+	for i, s := range split {
+		if i != len(split)-1 {
+			res += s + "/"
+		}
+	}
+	return res
+}

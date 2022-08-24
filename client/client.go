@@ -3,13 +3,16 @@ package client
 import (
 	"context"
 	"errors"
+	"github.com/klauspost/reedsolomon"
 	"go-fs/pkg/converter"
 	"go-fs/pkg/util"
 	dn "go-fs/proto/datanode"
 	namenode_pb "go-fs/proto/namenode"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"io/ioutil"
 	"log"
+	"math"
 	"os"
 	"strings"
 	"time"
@@ -26,6 +29,8 @@ type ListResp struct {
 	FileName []string
 }
 
+const MaxShardsNum = 25
+
 func Put(nameNodeConn *grpc.ClientConn, sourceFilePath string, destFilePath string) bool {
 	nameNodeInstance := namenode_pb.NewNameNodeServiceClient(nameNodeConn)
 
@@ -33,30 +38,32 @@ func Put(nameNodeConn *grpc.ClientConn, sourceFilePath string, destFilePath stri
 	fileSizeHandler, err := os.Stat(sourceFilePath)
 	util.Check(err)
 
+	var blockSize uint64
+	namenodeGetBlockSizeRequest := &namenode_pb.GetBlockSizeRequest{Request: true}
+	blockSizeResponse, err := nameNodeInstance.GetBlockSize(context.Background(), namenodeGetBlockSizeRequest)
+	util.Check(err)
+	log.Println("NameNode里获取到的块大小：", blockSizeResponse.BlockSize)
+	blockSize = blockSizeResponse.BlockSize
+
 	// 拿到size为了给文件分片(block), 每个block会被分配到不同的data node中
 	fileSize := uint64(fileSizeHandler.Size())
-
 	fileName := destFilePath
-	util.Check(err)
+	prePath := util.GetPrePath(fileName)
+
+	numberOfBlocksToAllocate := uint64(math.Ceil(float64(fileSize) / float64(blockSize)))
+	log.Println("分配块的数量:", numberOfBlocksToAllocate)
 
 	//分割filename
-	namenodeWriteRequest := &namenode_pb.WriteRequest{FileName: fileName, FileSize: fileSize}
+	namenodeWriteRequest := &namenode_pb.WriteRequest{
+		FileName:    fileName,
+		BlockNumber: numberOfBlocksToAllocate,
+	}
 
 	// ---------------- Step2: 从 namenode 获取初始化的元数据 ----------------
 	// namenode 的 writeData并不是真的写入, 返回的reply包含每一个文件的block应该被写入的data node 的地址
 	writeResponse, err := nameNodeInstance.WriteData(context.Background(), namenodeWriteRequest)
 	util.Check(err)
 	log.Println("NameNode里的写数据信息：", writeResponse.NameNodeMetaDataList)
-
-	var blockSize uint64
-
-	namenodeGetBlockSizeRequest := &namenode_pb.GetBlockSizeRequest{Request: true}
-
-	blockSizeResponse, err := nameNodeInstance.GetBlockSize(context.Background(), namenodeGetBlockSizeRequest)
-	util.Check(err)
-	log.Println("NameNode里获取到的块大小：", blockSizeResponse.BlockSize)
-
-	blockSize = blockSizeResponse.BlockSize
 
 	// ---------------- Step3: 开始读取文件，分片后发送给 datanode ----------------
 	fileHandler, err := os.Open(sourceFilePath)
@@ -94,10 +101,10 @@ func Put(nameNodeConn *grpc.ClientConn, sourceFilePath string, destFilePath stri
 		defer dataNodeInstance.Close()
 
 		request := dn.PutReq{
-			Path:             sourceFilePath,
+			Path:             prePath,
 			BlockId:          blockId,
-			Data:             string(dataStagingBytes), // 负载的数据分片
-			ReplicationNodes: datanodes,                // 需要往后传递，用于备份的 datanode 列表
+			Data:             dataStagingBytes, // 负载的数据分片
+			ReplicationNodes: datanodes,        // 需要往后传递，用于备份的 datanode 列表
 		}
 		// 写入数据
 		log.Println("已经写入的BLockId为：", blockId)
@@ -118,7 +125,8 @@ func Get(nameNodeConn *grpc.ClientConn, sourceFilePath string) (fileContents str
 	nameNodeInstance := namenode_pb.NewNameNodeServiceClient(nameNodeConn)
 
 	fileName := sourceFilePath
-
+	prePath := util.GetPrePath(fileName)
+	fileName = util.ModPath(fileName)
 	nameNodeReadRequest := &namenode_pb.ReadRequst{FileName: fileName}
 
 	// name node 并不是真的读数据, 返回的reply包含每一个文件的block 存放在data node 的地址
@@ -151,6 +159,7 @@ func Get(nameNodeConn *grpc.ClientConn, sourceFilePath string) (fileContents str
 			}(dataNodeInstance)
 
 			request := dn.GetReq{
+				PrePath: prePath,
 				BlockId: pbMetaData.BlockId,
 			}
 
@@ -158,7 +167,7 @@ func Get(nameNodeConn *grpc.ClientConn, sourceFilePath string) (fileContents str
 			resp, rpcErr := dn.NewDataNodeClient(dataNodeInstance).Get(context.Background(), &request)
 			util.Check(rpcErr)
 			// 追加内容
-			fileContents += resp.Data
+			fileContents += string(resp.Data)
 			// 读取成功后, 将标志位置为true, 此block不再获取
 			blockFetchStatus = true
 			break
@@ -177,6 +186,7 @@ func Get(nameNodeConn *grpc.ClientConn, sourceFilePath string) (fileContents str
 }
 
 func Delete(nameNodeConn *grpc.ClientConn, filename string) bool {
+	filename = util.ModPath(filename)
 	resp, err := namenode_pb.NewNameNodeServiceClient(nameNodeConn).DeleteData(context.Background(), &namenode_pb.DeleteDataReq{
 		FileName: filename,
 	})
@@ -185,6 +195,7 @@ func Delete(nameNodeConn *grpc.ClientConn, filename string) bool {
 	}
 	log.Println("调用NameNode的Delete请求读取数据的信息为：", resp.NameNodeMetaDataList)
 	deleteStatus := false
+	prePath := util.GetPrePath(filename)
 
 	//datanode开始删除数据
 	for _, mdi := range resp.NameNodeMetaDataList {
@@ -202,6 +213,7 @@ func Delete(nameNodeConn *grpc.ClientConn, filename string) bool {
 			}(conn)
 			deleteResp, err := dn.NewDataNodeClient(conn).Delete(context.Background(), &dn.DeleteReq{
 				BlockId: mdi.BlockId,
+				PrePath: prePath,
 			})
 			if err != nil {
 				log.Println("cannot dial method from datanode:", dni.Host, ":", dni.ServicePort)
@@ -218,9 +230,11 @@ func Delete(nameNodeConn *grpc.ClientConn, filename string) bool {
 }
 
 func Stat(nameNodeConn *grpc.ClientConn, filename string) (*StatResp, error) {
+	filename = util.ModPath(filename)
 	resp, err := namenode_pb.NewNameNodeServiceClient(nameNodeConn).StatData(context.Background(), &namenode_pb.StatDataReq{
 		FileName: filename,
 	})
+	prePath := util.GetPrePath(filename)
 	if err != nil {
 		log.Println("NameNode Stat Data Error:", err)
 		return nil, err
@@ -240,6 +254,7 @@ func Stat(nameNodeConn *grpc.ClientConn, filename string) (*StatResp, error) {
 			}
 			resp, err := dn.NewDataNodeClient(conn).Stat(context.Background(), &dn.StatReq{
 				BlockId: mdi.BlockId,
+				PrePath: prePath,
 			})
 			if err != nil {
 				log.Println("cannot dial method from datanode:", dni.Host, ":", dni.ServicePort)
@@ -374,4 +389,159 @@ func List(nameNodeConn *grpc.ClientConn, parentPath string) (*ListResp, error) {
 		FileName: resp.FileName,
 		DirName:  resp.DirName,
 	}, nil
+}
+
+func PutByEc(nameNodeConn *grpc.ClientConn, sourceFilePath string, destFilePath string) bool {
+	//先获取可用datanode节点，并设置一个拆分切片最大值
+	//目前仅对EC做个简单示例，全面覆盖多副本策略比较困难，时间有限
+	file, err := ioutil.ReadFile(sourceFilePath)
+	if err != nil {
+		log.Println("cannot read file:", err)
+		return false
+	}
+	prePath := util.GetPrePath(destFilePath)
+	nodes, err := namenode_pb.NewNameNodeServiceClient(nameNodeConn).GetDataNodes(context.Background(), &namenode_pb.GetDataNodesReq{})
+	if err != nil {
+		log.Println("NameNode GetDataNodes Error:", err)
+		return false
+	}
+	dataShardsNum := len(nodes.DataNodeList)
+	if dataShardsNum >= MaxShardsNum {
+		dataShardsNum = MaxShardsNum
+	}
+	parityShardsNum := dataShardsNum / 3
+	//例如三个节点分成两个data切片和一个parity切片，暂时不考虑EC冗余配比
+	encoder, err := reedsolomon.New(dataShardsNum-parityShardsNum, parityShardsNum)
+	if err != nil {
+		log.Println("cannot new reedsolomon:", err)
+		return false
+	}
+	data, err := encoder.Split(file)
+	if err != nil {
+		log.Println("cannot Split reedsolomon:", err)
+		return false
+	}
+	//接下来向NameNode发起请求给data分配datanode节点
+	node, err := namenode_pb.NewNameNodeServiceClient(nameNodeConn).ECAssignDataNode(context.Background(), &namenode_pb.ECAssignDataNodeReq{
+		Filename:       destFilePath,
+		DatanodeNumber: int64(len(data)),
+	})
+	if err != nil {
+		log.Println("NameNode ECAssignDataNode Error:", err)
+		return false
+	}
+	//向datanode写入数据
+	for i, m := range node.NameNodeMetaData {
+		write := data[i]
+		filename := m.BlockId
+		for _, dni := range m.BlockAddresses {
+			conn, err := grpc.Dial(dni.Host+":"+dni.ServicePort, grpc.WithTransportCredentials(insecure.NewCredentials()))
+			if err != nil {
+				log.Println("DataNode Dial Error:", err)
+				return false
+			}
+			resp, err := dn.NewDataNodeClient(conn).Put(context.Background(), &dn.PutReq{
+				Path:             prePath,
+				Data:             write,
+				BlockId:          filename,
+				ReplicationNodes: nil,
+			})
+			if err != nil {
+				log.Println("DataNode Put Error:", err)
+				return false
+			}
+			if resp.Success {
+				log.Println("write data success:", filename)
+			}
+		}
+	}
+	return true
+}
+
+func GetByEc(nameNodeConn *grpc.ClientConn, filename string) (fileContents string, getStatus bool) {
+	//多副本是读到一个datanode就结束，而EC需要读取所有的DataNodes
+	fileContents = ""
+	getStatus = false
+	data, err := namenode_pb.NewNameNodeServiceClient(nameNodeConn).ReadData(context.Background(), &namenode_pb.ReadRequst{
+		FileName: filename,
+	})
+	if err != nil {
+		log.Println("NameNode ReadData Error:", err)
+		return
+	}
+	prePath := util.GetPrePath(filename)
+	for _, m := range data.NameNodeMetaDataList {
+		for _, b := range m.BlockAddresses {
+			conn, err := grpc.Dial(b.Host+":"+b.ServicePort, grpc.WithTransportCredentials(insecure.NewCredentials()))
+			if err != nil {
+				log.Println("DataNode Dial Error:", err)
+				return
+			}
+			resp, err := dn.NewDataNodeClient(conn).Get(context.Background(), &dn.GetReq{
+				BlockId: m.BlockId,
+				PrePath: prePath,
+			})
+			if err != nil {
+				log.Println("DataNode Get Error:", err)
+				return
+			}
+			fileContents += string(resp.Data)
+		}
+	}
+	getStatus = true
+	return
+}
+
+func RecoverDataByEC(nameNodeConn *grpc.ClientConn, filename string, deadDataNodeAddr string) (string, bool) {
+	//暂时采用挂掉DataNode节点然后直接告诉NameNode哪个节点挂掉，然后观察能否恢复数据的方式来测试
+	//先向NameNode获取blockId等信息
+	resp, err := namenode_pb.NewNameNodeServiceClient(nameNodeConn).ReadData(context.Background(), &namenode_pb.ReadRequst{
+		FileName: filename,
+	})
+	if err != nil {
+		log.Println("NameNode ReadData Error:", err)
+		return "", false
+	}
+	prePath := util.GetPrePath(filename)
+	var data [][]byte
+	for _, m := range resp.NameNodeMetaDataList {
+		for _, b := range m.BlockAddresses {
+			if b.Host+":"+b.ServicePort != deadDataNodeAddr {
+				conn, err := grpc.Dial(b.Host+":"+b.ServicePort, grpc.WithTransportCredentials(insecure.NewCredentials()))
+				if err != nil {
+					log.Println("DataNode Dial Error:", err)
+					return "", false
+				}
+				getResp, err := dn.NewDataNodeClient(conn).Get(context.Background(), &dn.GetReq{
+					BlockId: m.BlockId,
+					PrePath: prePath,
+				})
+				if err != nil {
+					log.Println("DataNode Get Error:", err)
+					return "", false
+				}
+				data = append(data, getResp.Data)
+			}
+		}
+	}
+	//一般采用三个节点测试，此处直接赋值了
+	encoder, err := reedsolomon.New(2, 1)
+	verify, err := encoder.Verify(data)
+	if !verify {
+		err := encoder.Reconstruct(data)
+		if err != nil {
+			log.Println("cannot recover data")
+			return "", false
+		}
+		b, err := encoder.Verify(data)
+		if !b {
+			log.Println("cannot recover data")
+			return "", false
+		}
+	}
+	var fileContent string
+	for _, d := range data {
+		fileContent += string(d)
+	}
+	return fileContent, true
 }

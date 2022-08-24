@@ -101,16 +101,16 @@ func (s *Server) forwardForReplication(request *dn.PutReq, reply *dn.PutResp) (*
 
 func (s *Server) Put(c context.Context, req *dn.PutReq) (*dn.PutResp, error) {
 	log.Println("写入blockId为", req.BlockId)
-	fileWriteHandler, err := os.Create(s.DataDirectory + req.BlockId)
+	fileWriteHandler, err := os.Create(s.DataDirectory + req.Path + req.BlockId)
 	if err != nil {
 		log.Println("data directory create error:", err)
+		panic(err)
 	}
 	log.Println("data directory create success")
-	util.Check(err)
 	defer fileWriteHandler.Close()
 
 	fileWriter := bufio.NewWriter(fileWriteHandler)
-	_, err = fileWriter.WriteString(req.Data)
+	_, err = fileWriter.WriteString(string(req.Data))
 	util.Check(err)
 	fileWriter.Flush()
 	resp := dn.PutResp{Success: true}
@@ -120,15 +120,15 @@ func (s *Server) Put(c context.Context, req *dn.PutReq) (*dn.PutResp, error) {
 
 func (s *Server) Get(c context.Context, req *dn.GetReq) (*dn.GetResp, error) {
 	log.Println("读取的BlockId为：", req.BlockId)
-	dataBytes, err := ioutil.ReadFile(s.DataDirectory + req.BlockId)
+	dataBytes, err := ioutil.ReadFile(s.DataDirectory + req.PrePath + req.BlockId)
 	if err != nil {
 		return &dn.GetResp{}, err
 	}
-	return &dn.GetResp{Data: string(dataBytes)}, nil
+	return &dn.GetResp{Data: dataBytes}, nil
 }
 
 func (s *Server) Delete(c context.Context, req *dn.DeleteReq) (*dn.DeleteResp, error) {
-	_, err := os.Open(s.DataDirectory + req.BlockId)
+	_, err := os.Open(s.DataDirectory + req.PrePath + req.BlockId)
 	if err != nil {
 		log.Println("文件已经被删掉")
 		return &dn.DeleteResp{Success: true}, nil
@@ -142,7 +142,7 @@ func (s *Server) Delete(c context.Context, req *dn.DeleteReq) (*dn.DeleteResp, e
 }
 
 func (s *Server) Stat(c context.Context, req *dn.StatReq) (*dn.StatResp, error) {
-	stat, err := os.Stat(s.DataDirectory + req.BlockId)
+	stat, err := os.Stat(s.DataDirectory + req.PrePath + req.BlockId)
 	if err != nil {
 		log.Println("cannot stat the file:", err)
 		return &dn.StatResp{}, err
