@@ -25,7 +25,6 @@ func init() {
 
 func main() {
 	WorkByCli()
-
 }
 
 func WorkByCli() {

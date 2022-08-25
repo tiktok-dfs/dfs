@@ -2,10 +2,12 @@ package namenode
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	transport "github.com/Jille/raft-grpc-transport"
 	"github.com/Jille/raftadmin"
+	"github.com/fsnotify/fsnotify"
 	"github.com/hashicorp/raft"
 	boltdb "github.com/hashicorp/raft-boltdb"
 	"go-fs/common/config"
@@ -15,6 +17,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/reflection"
+	"io/ioutil"
 	"log"
 	"net"
 	"os"
@@ -36,22 +39,30 @@ func InitializeNameNodeUtil(host string, master bool, follow, raftId string, ser
 		//为了方便Windows下调试
 		hostname = "localhost"
 	}
+	baseDir := filepath.Join(config.RaftCfg.RaftDataDir, raftId)
+	join := filepath.Join(baseDir, "logs.dat")
+	err = os.RemoveAll(baseDir)
+	err = os.MkdirAll(baseDir, 0755)
+	if err != nil {
+		panic(err)
+	}
 
 	log.Printf("BlockSize is %d\n", blockSize)
 	log.Printf("Replication Factor is %d\n", replicationFactor)
 	log.Printf("NameNode port is %d\n", serverPort)
+	log.Printf("Raft Log Dir is %s\n", join)
 
 	addr := ":" + strconv.Itoa(serverPort)
 
 	listener, err := net.Listen("tcp", addr)
 	util.Check(err)
 
-	var fsm RaftMessage
-	raftNode, tm, err := newRaft(master, follow, raftId, hostname+addr, &fsm)
+	var fsm namenode.Service
+	raftNode, tm, ldb, err := newRaft(master, follow, raftId, hostname+addr, &fsm)
 	if err != nil {
 		log.Println("start raft cluster fail:", err)
 	}
-	nameNodeInstance := namenode.NewService(raftNode, uint64(blockSize), uint64(replicationFactor), uint16(serverPort))
+	nameNodeInstance := namenode.NewService(raftNode, ldb, uint64(blockSize), uint64(replicationFactor), uint16(serverPort))
 	server := grpc.NewServer()
 	namenode_pb.RegisterNameNodeServiceServer(server, nameNodeInstance)
 	tm.Register(server)
@@ -67,16 +78,19 @@ func InitializeNameNodeUtil(host string, master bool, follow, raftId string, ser
 
 	log.Println("NameNode daemon started on port: " + strconv.Itoa(serverPort))
 
-	go func(raftNode *raft.Raft) {
+	go func(s *namenode.Service) {
 		for range time.Tick(5 * time.Second) {
-			if raftNode == nil {
+			if s.RaftNode == nil {
 				log.Println("节点加入有误，raft未建立成功")
 				continue
 			}
-			id, serverID := raftNode.LeaderWithID()
-			log.Println("当前主节点名称:", id, "host:", serverID)
+			id, serverId := raftNode.LeaderWithID()
+			log.Println("当前主节点名称:", id, serverId)
+			log.Println("当前节点的元数据IdToDataNodes信息:", s.IdToDataNodes)
 		}
-	}(raftNode)
+	}(nameNodeInstance)
+
+	go listenLeaderChanges(filepath.Join(config.RaftCfg.RaftDataDir, "log.dat"), nameNodeInstance)
 
 	// 监测datanode的心跳
 	go checkDataNode(nameNodeInstance)
@@ -91,8 +105,52 @@ func InitializeNameNodeUtil(host string, master bool, follow, raftId string, ser
 
 }
 
+// 监听主节点元数据信息变化
+func listenLeaderChanges(filename string, s *namenode.Service) {
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer watcher.Close()
+	done := make(chan bool)
+	go func(s *namenode.Service) {
+		for {
+			select {
+			case event := <-watcher.Events:
+				if event.Op&fsnotify.Write == fsnotify.Write {
+					if s.RaftNode.State() == raft.Leader {
+						continue
+					}
+					bytes, err := ioutil.ReadFile(filename)
+					if err != nil {
+						log.Println("cannot read file:", err)
+					}
+					var srv namenode.Service
+					err = json.Unmarshal(bytes, &srv)
+					if err != nil {
+						log.Println("cannot parse json:", err)
+					}
+					copyService(s, srv)
+					continue
+				}
+			case err := <-watcher.Errors:
+				log.Println("error:", err)
+				continue
+			}
+		}
+	}(s)
+	err = watcher.Add(filename)
+	if err != nil {
+		log.Fatal(err)
+	}
+	<-done
+}
+
 func checkDataNode(instance *namenode.Service) {
-	for range time.Tick(time.Millisecond * 1) {
+	for range time.Tick(time.Millisecond * 3) {
+		if instance.RaftNode.State() != raft.Leader {
+			continue
+		}
 		if instance.IdToDataNodes == nil {
 			continue
 		}
@@ -109,7 +167,7 @@ func checkDataNode(instance *namenode.Service) {
 	}
 }
 
-func newRaft(master bool, follow, myID, myAddress string, fsm raft.FSM) (*raft.Raft, *transport.Manager, error) {
+func newRaft(master bool, follow, myID, myAddress string, fsm raft.FSM) (*raft.Raft, *transport.Manager, *boltdb.BoltStore, error) {
 	c := raft.DefaultConfig()
 	isLeader := make(chan bool, 1)
 	c.NotifyCh = isLeader
@@ -117,35 +175,26 @@ func newRaft(master bool, follow, myID, myAddress string, fsm raft.FSM) (*raft.R
 
 	baseDir := filepath.Join(config.RaftCfg.RaftDataDir, myID)
 
-	//重启的时候如果存在该文件夹会报错，需要注意是否要删除文件夹再重新运行，为了考虑数据安全问题，未在代码里强制删除
-	err := os.RemoveAll(baseDir)
-	if err != nil {
-
-	}
-	err = os.MkdirAll(baseDir, 0755)
-	if err != nil {
-		return nil, nil, err
-	}
 	ldb, err := boltdb.NewBoltStore(filepath.Join(baseDir, "logs.dat"))
 	if err != nil {
-		return nil, nil, fmt.Errorf(`boltdb.NewBoltStore(%q): %v`, filepath.Join(baseDir, "logs.dat"), err)
+		return nil, nil, nil, fmt.Errorf(`boltdb.NewBoltStore(%q): %v`, filepath.Join(baseDir, "logs.dat"), err)
 	}
 
 	sdb, err := boltdb.NewBoltStore(filepath.Join(baseDir, "stable.dat"))
 	if err != nil {
-		return nil, nil, fmt.Errorf(`boltdb.NewBoltStore(%q): %v`, filepath.Join(baseDir, "stable.dat"), err)
+		return nil, nil, nil, fmt.Errorf(`boltdb.NewBoltStore(%q): %v`, filepath.Join(baseDir, "stable.dat"), err)
 	}
 
 	fss, err := raft.NewFileSnapshotStore(baseDir, 3, os.Stderr)
 	if err != nil {
-		return nil, nil, fmt.Errorf(`raft.NewFileSnapshotStore(%q, ...): %v`, baseDir, err)
+		return nil, nil, nil, fmt.Errorf(`raft.NewFileSnapshotStore(%q, ...): %v`, baseDir, err)
 	}
 
-	tm := transport.New(raft.ServerAddress(myAddress), []grpc.DialOption{grpc.WithInsecure()})
+	tm := transport.New(raft.ServerAddress(myAddress), []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())})
 
 	r, err := raft.NewRaft(c, fsm, ldb, sdb, fss, tm.Transport())
 	if err != nil {
-		return nil, nil, fmt.Errorf("raft.NewRaft: %v", err)
+		return nil, nil, nil, fmt.Errorf("raft.NewRaft: %v", err)
 	}
 
 	log.Println("master", master)
@@ -161,16 +210,16 @@ func newRaft(master bool, follow, myID, myAddress string, fsm raft.FSM) (*raft.R
 		}
 		f := r.BootstrapCluster(cfg)
 		if err := f.Error(); err != nil {
-			return nil, nil, fmt.Errorf("raft.Raft.BootstrapCluster: %v", err)
+			return nil, nil, nil, fmt.Errorf("raft.Raft.BootstrapCluster: %v", err)
 		}
 	} else if follow != "" {
 		findLeader, err := FindLeader(follow)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 		conn, err := grpc.Dial(findLeader, grpc.WithTransportCredentials(insecure.NewCredentials()))
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 		resp, err := namenode_pb.NewNameNodeServiceClient(conn).JoinCluster(context.Background(), &namenode_pb.JoinClusterReq{
 			Addr:          myAddress,
@@ -178,13 +227,13 @@ func newRaft(master bool, follow, myID, myAddress string, fsm raft.FSM) (*raft.R
 			PreviousIndex: 0,
 		})
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 		if resp.Success {
 			log.Println("join the cluster success")
 		}
 	}
-	return r, tm, nil
+	return r, tm, ldb, nil
 }
 
 // FindLeader 查找NameNode的Raft集群的Leader
@@ -211,4 +260,13 @@ func FindLeader(addrList string) (string, error) {
 		}
 	}
 	return res, nil
+}
+
+func copyService(old *namenode.Service, new namenode.Service) {
+	old.FileNameToBlocks = new.FileNameToBlocks
+	old.DirTree = new.DirTree
+	old.IdToDataNodes = new.IdToDataNodes
+	old.DataNodeHeartBeat = new.DataNodeHeartBeat
+	old.DataNodeMessageMap = new.DataNodeMessageMap
+	old.BlockToDataNodeIds = new.BlockToDataNodeIds
 }
