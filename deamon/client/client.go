@@ -8,6 +8,7 @@ import (
 	nn "go-fs/proto/namenode"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"log"
 	"net"
 	"strings"
 	"time"
@@ -18,14 +19,14 @@ type Service struct {
 	NameNodePort string
 }
 
-func PutHandler(nameNodeAddress string, sourceFilePath string, destFilePath string) bool {
+func PutHandler(nameNodeAddress string, sourceFilePath string, destFilePath string) (bool, error) {
 	rpcClient, err := initializeClientUtil(nameNodeAddress)
 	util.Check(err)
 	defer rpcClient.Close()
 	return client.Put(rpcClient, sourceFilePath, destFilePath)
 }
 
-func GetHandler(nameNodeAddress string, sourceFilePath string) (string, bool) {
+func GetHandler(nameNodeAddress string, sourceFilePath string) (string, bool, error) {
 	rpcClient, err := initializeClientUtil(nameNodeAddress)
 	util.Check(err)
 	defer rpcClient.Close()
@@ -39,7 +40,7 @@ func DeleteHandler(nameNodeAddress string, sourceFilePath string) bool {
 	return client.Delete(rpcClient, sourceFilePath)
 }
 
-func StatHandler(nameNodeAddress string, sourceFilePath string) (*client.StatResp, error) {
+func StatHandler(nameNodeAddress string, sourceFilePath string) (string, error) {
 	rpcClient, err := initializeClientUtil(nameNodeAddress)
 	util.Check(err)
 	defer rpcClient.Close()
@@ -60,7 +61,7 @@ func RenameHandle(nameNodeAddress string, remoteFilePath string, renameDestPath 
 	return client.Rename(rpcClient, remoteFilePath, renameDestPath)
 }
 
-func ListHandler(nameNodeAddress string, parentPath string) (*client.ListResp, error) {
+func ListHandler(nameNodeAddress string, parentPath string) (string, error) {
 	rpcClient, err := initializeClientUtil(nameNodeAddress)
 	util.Check(err)
 	defer rpcClient.Close()
@@ -101,15 +102,19 @@ func initializeClientUtil(nameNodeAddress string) (*grpc.ClientConn, error) {
 
 func listenLeader(s *Service, address string) {
 	for range time.Tick(time.Second * 1) {
+		log.Println(s.NameNodeHost, s.NameNodePort)
+		log.Println(address)
 		nameNodes := strings.Split(address, ",")
 		for _, n := range nameNodes {
 			conn, err := grpc.Dial(n, grpc.WithTransportCredentials(insecure.NewCredentials()))
 			if err != nil {
 				//表明连接不上，继续遍历节点
+				log.Println(err)
 				continue
 			}
 			resp, err := nn.NewNameNodeServiceClient(conn).FindLeader(context.Background(), &nn.FindLeaderReq{})
 			if err != nil {
+				log.Println(err)
 				continue
 			}
 			host, port, err := net.SplitHostPort(resp.Addr)
@@ -119,6 +124,7 @@ func listenLeader(s *Service, address string) {
 			s.NameNodeHost = host
 			s.NameNodePort = port
 		}
+		log.Println(s.NameNodeHost, s.NameNodePort)
 		if s.NameNodePort == "" {
 			err := errors.New("there is no alive name node")
 			if err != nil {
