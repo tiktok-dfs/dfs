@@ -1,11 +1,14 @@
 package main
 
 import (
+	"bufio"
 	"flag"
 	"go-fs/common/config"
 	"go-fs/deamon/client"
 	"go-fs/deamon/datanode"
 	"go-fs/deamon/namenode"
+	"go-fs/pkg/logger"
+	"go.uber.org/zap"
 	"log"
 	"os"
 	"sync"
@@ -26,6 +29,9 @@ func main() {
 }
 
 func WorkByCli() {
+
+	logger.InitLogger()
+
 	dataNodeCommand := flag.NewFlagSet("datanode", flag.ExitOnError)
 	nameNodeCommand := flag.NewFlagSet("namenode", flag.ExitOnError)
 	clientCommand := flag.NewFlagSet("client", flag.ExitOnError)
@@ -44,6 +50,7 @@ func WorkByCli() {
 	clientNameNodePortPtr := clientCommand.String("namenode", "localhost:9000", "NameNode communication port")
 	clientOperationPtr := clientCommand.String("operation", "", "Operation to perform")
 	clientSourcePathPtr := clientCommand.String("source-path", "", "Source path of the file")
+	clientDestPathPtr := clientCommand.String("dest-path", "", "destination path of the file")
 	clientFilenamePtr := clientCommand.String("filename", "", "File name")
 	clientOldFilenamePtr := clientCommand.String("old", "", "Old File Name")
 	clientNewFilenamePtr := clientCommand.String("new", "", "New File Name")
@@ -88,15 +95,34 @@ func WorkByCli() {
 
 		if !*ec {
 			if *clientOperationPtr == "put" {
-				status := client.PutHandler(*clientNameNodePortPtr, *clientSourcePathPtr, *clientFilenamePtr)
+				status, err := client.PutHandler(*clientNameNodePortPtr, *clientSourcePathPtr, *clientFilenamePtr)
+				if err != nil {
+					log.Println(err.Error())
+				}
 				log.Printf("Put status: %t\n", status)
 
 			} else if *clientOperationPtr == "get" {
-				contents, status := client.GetHandler(*clientNameNodePortPtr, *clientFilenamePtr)
-				log.Printf("Get status: %t\n", status)
-				if status {
-					log.Println(contents)
+				contents, status, err := client.GetHandler(*clientNameNodePortPtr, *clientFilenamePtr)
+				if err != nil {
+					log.Println(err.Error())
 				}
+				log.Printf("Get status: %t\n", status)
+				if !status {
+					return
+				}
+
+				log.Println(contents)
+
+				fileWriteHandler, err := os.Create(*clientDestPathPtr)
+				defer fileWriteHandler.Close()
+				if err != nil {
+					log.Println("请检查路径")
+					return
+				}
+
+				fileWriter := bufio.NewWriter(fileWriteHandler)
+				fileWriter.WriteString(contents)
+				fileWriter.Flush()
 
 			} else if *clientOperationPtr == "delete" {
 				status := client.DeleteHandler(*clientNameNodePortPtr, *clientFilenamePtr)
@@ -105,9 +131,11 @@ func WorkByCli() {
 			} else if *clientOperationPtr == "stat" {
 				resp, err := client.StatHandler(*clientNameNodePortPtr, *clientFilenamePtr)
 				if err != nil {
-					log.Println("Stat Error:", err)
+					zap.S().Debug("Stat Error:", err)
+					log.Println("state file failed")
+					return
 				}
-				log.Println("Stat Data Message:\n", "FileName:", *clientFilenamePtr, "FileSize:", resp.FileSize, "FileModTime:", resp.ModTime)
+				log.Println(resp)
 
 			} else if *clientOperationPtr == "mkdir" {
 				status := client.MkdirHandler(*clientNameNodePortPtr, *clientFilenamePtr)
@@ -120,9 +148,10 @@ func WorkByCli() {
 			} else if *clientOperationPtr == "ls" {
 				resp, err := client.ListHandler(*clientNameNodePortPtr, *clientFilenamePtr)
 				if err != nil {
-					log.Println("Ls Error:", err)
+					zap.S().Debug("Ls Error:", err)
+					return
 				}
-				log.Println("ls Data:", resp)
+				log.Println(resp)
 			}
 		} else {
 			if *clientOperationPtr == "put" {

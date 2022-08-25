@@ -1,8 +1,10 @@
 package util
 
 import (
+	"go.uber.org/zap"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -13,8 +15,7 @@ type DataNodeInstance struct {
 
 func Check(e error) {
 	if e != nil {
-		log.Println(e)
-		panic(e)
+		zap.L().Error(e.Error())
 	}
 }
 
@@ -63,17 +64,19 @@ func ModPath(path string) string {
 	return path
 }
 
+// ModFilePath 修改path格式
+func ModFilePath(path string) string {
+	if strings.HasSuffix(path, "/") {
+		path = strings.TrimRight(path, "/")
+	}
+	if !strings.HasPrefix(path, "/") {
+		path = "/" + path
+	}
+	return path
+}
+
 // GetPrePath 获取文件名的前缀路径
 func GetPrePath(filename string) string {
-	if strings.HasPrefix(filename, "/") {
-		filename = filename[len("/"):]
-	}
-	split := strings.Split(filename, "/")
-	res := ""
-	for i, s := range split {
-		if i != len(split)-1 {
-			res += s + "/"
-		}
-	}
-	return res
+	dir, _ := filepath.Split(filename)
+	return dir
 }

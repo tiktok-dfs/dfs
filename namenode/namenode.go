@@ -9,6 +9,7 @@ import (
 	"go-fs/pkg/util"
 	dn "go-fs/proto/datanode"
 	namenode_pb "go-fs/proto/namenode"
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"log"
@@ -170,21 +171,25 @@ func NameNodeMetaData2PB(nnmd NameNodeMetaData) *namenode_pb.NameNodeMetaData {
 
 // ReadData 返回metadata, 包含该文件每一个block的id与data node的地址
 func (nn *Service) ReadData(ctx context.Context, req *namenode_pb.ReadRequst) (*namenode_pb.ReadResponse, error) {
+	modedFilePath := util.ModFilePath(req.FileName)
+	zap.S().Debug("file map: ", nn.FileNameToBlocks)
+	zap.S().Debug("want file: ", modedFilePath)
+
 	var res namenode_pb.ReadResponse
 
-	_, ok := nn.FileNameToBlocks[req.FileName]
+	_, ok := nn.FileNameToBlocks[modedFilePath]
 	if !ok {
-		return nil, e.FileDoesNotExist
+		return nil, e.ErrFileDoesNotExist
 	}
-	fileBlocks := nn.FileNameToBlocks[req.FileName]
+	fileBlocks := nn.FileNameToBlocks[modedFilePath]
 
 	for _, block := range fileBlocks {
 		var blockAddresses []util.DataNodeInstance
 
-		log.Println("读取到的blockId为：", block)
+		zap.S().Debug("读取到的blockId为：", block)
 		targetDataNodeIds := nn.BlockToDataNodeIds[block]
 		for _, dataNodeId := range targetDataNodeIds {
-			log.Println("读取到的blockAddresses为：", blockAddresses)
+			zap.S().Debug("读取到的blockAddresses为：", blockAddresses)
 			blockAddresses = append(blockAddresses, nn.IdToDataNodes[dataNodeId])
 		}
 
@@ -196,23 +201,29 @@ func (nn *Service) ReadData(ctx context.Context, req *namenode_pb.ReadRequst) (*
 
 // WriteData 返回metadata, 包含写入文件的每一个block的id与data node的地址
 func (nn *Service) WriteData(ctx context.Context, req *namenode_pb.WriteRequest) (*namenode_pb.WriteResponse, error) {
+	modedFilePath := util.ModFilePath(req.FileName)
+	// 不允许重复写
+	if _, ok := nn.FileNameToBlocks[modedFilePath]; ok {
+		return nil, e.ErrDuplicatedWrite
+	}
+
 	var res namenode_pb.WriteResponse
 
-	nn.FileNameToBlocks[req.FileName] = []string{}
+	nn.FileNameToBlocks[modedFilePath] = []string{}
 
 	filename := util.ModPath(req.FileName)
 	insert := nn.DirTree.Insert(filename)
 	if !insert {
-		log.Println("请确认你创建的文件目录是否存在")
-		return &namenode_pb.WriteResponse{}, nil
+		return nil, e.ErrSubDirTree
 	}
-	log.Println("插入后目录树为", nn.DirTree.LookAll())
+	zap.S().Debugf("插入后filemap为: %v", nn.FileNameToBlocks)
+	zap.S().Debugf("插入后目录树为: %v", nn.DirTree.LookAll())
 
 	/*numberOfBlocksToAllocate := uint64(math.Ceil(float64(req.FileSize) / float64(nn.BlockSize)))
 	log.Println("分配块的数量:", numberOfBlocksToAllocate)
 	*/
-	nameNodeMetaDataList := nn.allocateBlocks(filename, req.BlockNumber)
-	log.Println("分配块的信息：", nameNodeMetaDataList)
+	nameNodeMetaDataList := nn.allocateBlocks(modedFilePath, req.BlockNumber)
+	zap.S().Debugf("分配块的信息： %v", nameNodeMetaDataList)
 
 	for _, nnmd := range nameNodeMetaDataList {
 		res.NameNodeMetaDataList = append(res.NameNodeMetaDataList, NameNodeMetaData2PB(nnmd))
@@ -362,41 +373,50 @@ func (nameNode *Service) ReDistributeData(request *ReDistributeDataRequest, repl
 }
 
 func (s *Service) DeleteData(c context.Context, req *namenode_pb.DeleteDataReq) (*namenode_pb.DeleteDataResp, error) {
-	var res namenode_pb.DeleteDataResp
-	s.DirTree.Delete(s.DirTree.Root, req.FileName)
-	log.Println("删除文件后目录树为:", s.DirTree.LookAll())
+	dirTreeFilePath := util.ModPath(req.FileName)
+	modedFilePath := util.ModFilePath(req.FileName)
 
-	_, ok := s.FileNameToBlocks[req.FileName]
+	var res namenode_pb.DeleteDataResp
+	s.DirTree.Delete(s.DirTree.Root, dirTreeFilePath)
+	zap.S().Debug("删除文件后目录树为:", s.DirTree.LookAll())
+
+	_, ok := s.FileNameToBlocks[modedFilePath]
 	if !ok {
-		return nil, e.FileDoesNotExist
+		return nil, e.ErrFileDoesNotExist
 	}
-	fileBlocks := s.FileNameToBlocks[req.FileName]
+
+	fileBlocks := s.FileNameToBlocks[modedFilePath]
 
 	for _, block := range fileBlocks {
 		var blockAddresses []util.DataNodeInstance
 
-		log.Println("读取到的blockId为：", block)
+		zap.S().Debug("读取到的blockId为：", block)
 		targetDataNodeIds := s.BlockToDataNodeIds[block]
 		for _, dataNodeId := range targetDataNodeIds {
-			log.Println("读取到的blockAddresses为：", blockAddresses)
+			zap.S().Debug("读取到的blockAddresses为：", blockAddresses)
 			blockAddresses = append(blockAddresses, s.IdToDataNodes[dataNodeId])
 		}
 
 		res.NameNodeMetaDataList = append(res.NameNodeMetaDataList, NameNodeMetaData2PB(NameNodeMetaData{BlockId: block, BlockAddresses: blockAddresses}))
 	}
 
+	delete(s.FileNameToBlocks, modedFilePath)
+	zap.S().Debug("删除文件后filemap为:", s.FileNameToBlocks)
+
 	return &res, nil
 }
 
 // StatData TODO 有些方法都是根据文件名获取block集合可以抽取成公共方法，方法名可以改为GetBlocksFromFileName
 func (s *Service) StatData(c context.Context, req *namenode_pb.StatDataReq) (*namenode_pb.StatDataResp, error) {
+	modedFilePath := util.ModFilePath(req.FileName)
+
 	var res namenode_pb.StatDataResp
 
-	_, ok := s.FileNameToBlocks[req.FileName]
+	_, ok := s.FileNameToBlocks[modedFilePath]
 	if !ok {
-		return nil, e.FileDoesNotExist
+		return nil, e.ErrFileDoesNotExist
 	}
-	fileBlocks := s.FileNameToBlocks[req.FileName]
+	fileBlocks := s.FileNameToBlocks[modedFilePath]
 
 	for _, block := range fileBlocks {
 		var blockAddresses []util.DataNodeInstance
@@ -439,6 +459,8 @@ func (s *Service) Rename(c context.Context, req *namenode_pb.RenameReq) (*nameno
 	list := s.FileNameToBlocks[req.OldFileName]
 	s.FileNameToBlocks[req.NewFileName] = list
 	delete(s.FileNameToBlocks, req.OldFileName)
+	zap.S().Debug(s.FileNameToBlocks)
+	zap.S().Debugf("%v", s.DirTree)
 	return &namenode_pb.RenameResp{
 		Success: true,
 	}, nil
@@ -448,12 +470,12 @@ func (s *Service) Mkdir(c context.Context, req *namenode_pb.MkdirReq) (*namenode
 	path := util.ModPath(req.Path)
 	ok := s.DirTree.Insert(path)
 	if !ok {
-		log.Println("插入目录失败，请确认操作是否有误")
+		zap.S().Error("插入目录失败，请确认操作是否有误")
 		return &namenode_pb.MkdirResp{}, errors.New("插入目录失败，请确认操作是否有误")
 	}
 	ok = s.DirTree.Insert(path + "../")
 	if !ok {
-		log.Println("插入目录失败，请确认操作是否有误")
+		zap.S().Error("插入目录失败，请确认操作是否有误")
 		return &namenode_pb.MkdirResp{}, errors.New("插入目录失败，请确认操作是否有误")
 	}
 	return &namenode_pb.MkdirResp{}, nil

@@ -13,8 +13,8 @@ func TestNameNodeCreation(t *testing.T) {
 		BlockSize:          4,
 		ReplicationFactor:  2,
 		FileNameToBlocks:   make(map[string][]string),
-		IdToDataNodes:      make(map[uint64]util.DataNodeInstance),
-		BlockToDataNodeIds: make(map[string][]uint64),
+		IdToDataNodes:      make(map[int64]util.DataNodeInstance),
+		BlockToDataNodeIds: make(map[string][]int64),
 	}
 
 	testDataNodeInstance1 := util.DataNodeInstance{Host: "localhost", ServicePort: "1234"}
@@ -33,8 +33,8 @@ func TestNameNodeServiceWrite(t *testing.T) {
 		BlockSize:          4,
 		ReplicationFactor:  2,
 		FileNameToBlocks:   make(map[string][]string),
-		IdToDataNodes:      make(map[uint64]util.DataNodeInstance),
-		BlockToDataNodeIds: make(map[string][]uint64),
+		IdToDataNodes:      make(map[int64]util.DataNodeInstance),
+		BlockToDataNodeIds: make(map[string][]int64),
 		DataNodeMessageMap: make(map[string]DataNodeMessage),
 		DirTree:            initDirTree(),
 	}
@@ -46,7 +46,6 @@ func TestNameNodeServiceWrite(t *testing.T) {
 
 	writeDataPayload := &namenode_pb.WriteRequest{
 		FileName: "foo",
-		FileSize: 12,
 	}
 
 	response, err := testNameNodeService.WriteData(context.Background(), writeDataPayload)

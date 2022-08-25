@@ -1,1 +1,5 @@
 .idea
+cluster/
+fromserver.txt
+go-fs
+logs/

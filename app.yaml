@@ -6,4 +6,4 @@ raft:
   raftdatadir: cluster/
 datanode:
   port: 7000
-  path: /usr/local/dfs/data/
+  path: /tmp/dfs/data/

@@ -3,17 +3,22 @@ package client
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/klauspost/reedsolomon"
 	"go-fs/pkg/converter"
+	"go-fs/pkg/e"
 	"go-fs/pkg/util"
 	dn "go-fs/proto/datanode"
 	namenode_pb "go-fs/proto/namenode"
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"io"
 	"io/ioutil"
 	"log"
 	"math"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 )
@@ -31,18 +36,23 @@ type ListResp struct {
 
 const MaxShardsNum = 25
 
-func Put(nameNodeConn *grpc.ClientConn, sourceFilePath string, destFilePath string) bool {
+func Put(nameNodeConn *grpc.ClientConn, sourceFilePath string, destFilePath string) (bool, error) {
 	nameNodeInstance := namenode_pb.NewNameNodeServiceClient(nameNodeConn)
 
 	// -------------- Step1:获取文件大小 ---------------
 	fileSizeHandler, err := os.Stat(sourceFilePath)
-	util.Check(err)
+	if err != nil {
+		log.Println("文件不存在")
+		return false, e.ErrFileDoesNotExist
+	}
 
 	var blockSize uint64
 	namenodeGetBlockSizeRequest := &namenode_pb.GetBlockSizeRequest{Request: true}
 	blockSizeResponse, err := nameNodeInstance.GetBlockSize(context.Background(), namenodeGetBlockSizeRequest)
-	util.Check(err)
-	log.Println("NameNode里获取到的块大小：", blockSizeResponse.BlockSize)
+	if err != nil {
+		return false, e.ErrInternalBusy
+	}
+	zap.S().Debugf("NameNode里获取到的块大小： %d", blockSizeResponse.BlockSize)
 	blockSize = blockSizeResponse.BlockSize
 
 	// 拿到size为了给文件分片(block), 每个block会被分配到不同的data node中
@@ -51,7 +61,7 @@ func Put(nameNodeConn *grpc.ClientConn, sourceFilePath string, destFilePath stri
 	prePath := util.GetPrePath(fileName)
 
 	numberOfBlocksToAllocate := uint64(math.Ceil(float64(fileSize) / float64(blockSize)))
-	log.Println("分配块的数量:", numberOfBlocksToAllocate)
+	zap.S().Debugf("分配块的数量: %d", numberOfBlocksToAllocate)
 
 	//分割filename
 	namenodeWriteRequest := &namenode_pb.WriteRequest{
@@ -62,12 +72,27 @@ func Put(nameNodeConn *grpc.ClientConn, sourceFilePath string, destFilePath stri
 	// ---------------- Step2: 从 namenode 获取初始化的元数据 ----------------
 	// namenode 的 writeData并不是真的写入, 返回的reply包含每一个文件的block应该被写入的data node 的地址
 	writeResponse, err := nameNodeInstance.WriteData(context.Background(), namenodeWriteRequest)
-	util.Check(err)
-	log.Println("NameNode里的写数据信息：", writeResponse.NameNodeMetaDataList)
+	if err != nil {
+		zap.S().Debugf("err: %s, e: %s", err.Error(), e.ErrDuplicatedWrite.Error())
+		zap.S().Debugf("%p, %p", err, e.ErrDuplicatedWrite)
+		zap.S().Debugf("%p, %p", err, e.ErrSubDirTree)
+		switch err.Error() {
+		case "文件重复写":
+			log.Println("文件已存在")
+		case "子目录不存在":
+			log.Println("请确认你创建的文件目录是否存在")
+		}
+		return false, err
+	}
+	zap.S().Debugf("NameNode里的写数据信息： %v", writeResponse.NameNodeMetaDataList)
 
 	// ---------------- Step3: 开始读取文件，分片后发送给 datanode ----------------
 	fileHandler, err := os.Open(sourceFilePath)
-	util.Check(err)
+	if err != nil {
+		return false, e.ErrInternalBusy
+	}
+	defer fileHandler.Close()
+	zap.S().Debugf("打开文件： %s", sourceFilePath)
 
 	// buffer 每次只读全局设定的block size 或 更少的数据
 	dataStagingBytes := make([]byte, blockSize) // 用于保存当前批次的数据
@@ -79,7 +104,12 @@ func Put(nameNodeConn *grpc.ClientConn, sourceFilePath string, destFilePath stri
 
 		// n代表着实际读到的byte数
 		n, err := fileHandler.Read(dataStagingBytes)
-		util.Check(err)
+		if err != nil {
+			if err != io.EOF {
+				zap.S().Error("File read n bytes failed")
+				return false, e.ErrInternalBusy
+			}
+		}
 		dataStagingBytes = dataStagingBytes[:n] // 截取实际读到的数据（最后一次可能不会正好覆盖完整个 dataStagingBytes）
 
 		blockId := metaData.BlockId
@@ -97,7 +127,10 @@ func Put(nameNodeConn *grpc.ClientConn, sourceFilePath string, destFilePath stri
 		}
 		// data1 node 此时真正的准备写入数据
 		dataNodeInstance, rpcErr := grpc.Dial(startingDataNode.Host+":"+startingDataNode.ServicePort, grpc.WithTransportCredentials(insecure.NewCredentials()))
-		util.Check(rpcErr)
+		if rpcErr != nil {
+			zap.S().Error(rpcErr)
+			return false, e.ErrInternalBusy
+		}
 		defer dataNodeInstance.Close()
 
 		request := dn.PutReq{
@@ -107,10 +140,13 @@ func Put(nameNodeConn *grpc.ClientConn, sourceFilePath string, destFilePath stri
 			ReplicationNodes: datanodes,        // 需要往后传递，用于备份的 datanode 列表
 		}
 		// 写入数据
-		log.Println("已经写入的BLockId为：", blockId)
+		zap.S().Debugf("已经写入的BLockId为：%s", blockId)
 		resp, rpcErr := dn.NewDataNodeClient(dataNodeInstance).Put(context.Background(), &request)
-		util.Check(rpcErr)
-		log.Println("put data success:", resp)
+		if rpcErr != nil {
+			zap.S().Error(rpcErr)
+			return false, e.ErrInternalBusy
+		}
+		zap.S().Debugf("put data success: %v", resp)
 		if resp.Success {
 			putStatus = true
 			continue
@@ -118,10 +154,10 @@ func Put(nameNodeConn *grpc.ClientConn, sourceFilePath string, destFilePath stri
 			putStatus = false
 		}
 	}
-	return putStatus
+	return putStatus, nil
 }
 
-func Get(nameNodeConn *grpc.ClientConn, sourceFilePath string) (fileContents string, getStatus bool) {
+func Get(nameNodeConn *grpc.ClientConn, sourceFilePath string) (fileContents string, getStatus bool, err error) {
 	nameNodeInstance := namenode_pb.NewNameNodeServiceClient(nameNodeConn)
 
 	fileName := sourceFilePath
@@ -131,9 +167,19 @@ func Get(nameNodeConn *grpc.ClientConn, sourceFilePath string) (fileContents str
 
 	// name node 并不是真的读数据, 返回的reply包含每一个文件的block 存放在data node 的地址
 	readResponse, err := nameNodeInstance.ReadData(context.Background(), nameNodeReadRequest)
-	util.Check(err)
+	if err != nil {
+		zap.S().Debugf("%s", err.Error())
+		zap.S().Debugf("%p, %p", err, e.ErrDuplicatedWrite)
+		zap.S().Debugf("%p, %p", err, e.ErrSubDirTree)
+		switch err.Error() {
+		case "z文件不存在":
+			log.Println("请检查文件路径")
+		}
+		zap.S().Error(err)
+		return "", false, err
+	}
 
-	log.Println("调用NameNode读取数据的信息为：", readResponse.NameNodeMetaDataList)
+	zap.S().Debug("调用NameNode读取数据的信息为：", readResponse.NameNodeMetaDataList)
 	fileContents = ""
 
 	for _, pbMetaData := range readResponse.NameNodeMetaDataList {
@@ -154,7 +200,7 @@ func Get(nameNodeConn *grpc.ClientConn, sourceFilePath string) (fileContents str
 			defer func(dataNodeInstance *grpc.ClientConn) {
 				err := dataNodeInstance.Close()
 				if err != nil {
-					log.Println("cannot close connection,please check:", err)
+					zap.S().Error("cannot close connection,please check:", err)
 				}
 			}(dataNodeInstance)
 
@@ -165,7 +211,10 @@ func Get(nameNodeConn *grpc.ClientConn, sourceFilePath string) (fileContents str
 
 			// 读数据
 			resp, rpcErr := dn.NewDataNodeClient(dataNodeInstance).Get(context.Background(), &request)
-			util.Check(rpcErr)
+			if err != nil {
+				zap.S().Error(err)
+				continue
+			}
 			// 追加内容
 			fileContents += string(resp.Data)
 			// 读取成功后, 将标志位置为true, 此block不再获取
@@ -176,47 +225,56 @@ func Get(nameNodeConn *grpc.ClientConn, sourceFilePath string) (fileContents str
 		// 如果一个block重试x次都没有拿到数据, 则返回文件没有get到
 		if !blockFetchStatus {
 			getStatus = false
-			return
+			return fileContents, getStatus, nil
 		}
 	}
 
 	// 所有block被拿到, 返回文件成功get到
 	getStatus = true
-	return
+	return fileContents, getStatus, nil
 }
 
 func Delete(nameNodeConn *grpc.ClientConn, filename string) bool {
+	zap.S().Debug("filename: ", filename)
+
 	filename = util.ModPath(filename)
 	resp, err := namenode_pb.NewNameNodeServiceClient(nameNodeConn).DeleteData(context.Background(), &namenode_pb.DeleteDataReq{
 		FileName: filename,
 	})
 	if err != nil {
-		log.Println("调用NameNode的Delete请求发生错误:", err)
+		zap.S().Debugf("%s", err.Error())
+		zap.S().Debugf("%p, %p", err, e.ErrDuplicatedWrite)
+		zap.S().Debugf("%p, %p", err, e.ErrSubDirTree)
+		switch err {
+		case e.ErrFileDoesNotExist:
+			log.Println("文件不存在")
+		}
+		zap.S().Error("调用NameNode的Delete请求发生错误:", err)
+
+		return false
 	}
-	log.Println("调用NameNode的Delete请求读取数据的信息为：", resp.NameNodeMetaDataList)
+	zap.S().Debug("调用NameNode的Delete请求读取数据的信息为：", resp.NameNodeMetaDataList)
 	deleteStatus := false
-	prePath := util.GetPrePath(filename)
+	prePath := util.GetPrePath(util.ModFilePath(filename))
+
+	zap.S().Debug(" prePath: ", prePath)
 
 	//datanode开始删除数据
 	for _, mdi := range resp.NameNodeMetaDataList {
 		for _, dni := range mdi.BlockAddresses {
 			conn, err := grpc.Dial(dni.Host+":"+dni.ServicePort, grpc.WithTransportCredentials(insecure.NewCredentials()))
 			if err != nil {
-				log.Println("cannot connect datanode:", dni.Host, ":", dni.ServicePort)
+				zap.S().Error("cannot connect datanode:", dni.Host, ":", dni.ServicePort)
 				return false
 			}
-			defer func(conn *grpc.ClientConn) {
-				err := conn.Close()
-				if err != nil {
-					log.Println("cannot close connection,please check:", err)
-				}
-			}(conn)
+			defer conn.Close()
+
 			deleteResp, err := dn.NewDataNodeClient(conn).Delete(context.Background(), &dn.DeleteReq{
 				BlockId: mdi.BlockId,
 				PrePath: prePath,
 			})
 			if err != nil {
-				log.Println("cannot dial method from datanode:", dni.Host, ":", dni.ServicePort)
+				zap.S().Error("cannot dial method from datanode:", dni.Host, ":", dni.ServicePort)
 				return false
 			}
 			if deleteResp.Success {
@@ -229,19 +287,20 @@ func Delete(nameNodeConn *grpc.ClientConn, filename string) bool {
 	return deleteStatus
 }
 
-func Stat(nameNodeConn *grpc.ClientConn, filename string) (*StatResp, error) {
-	filename = util.ModPath(filename)
+func Stat(nameNodeConn *grpc.ClientConn, filename string) (string, error) {
+	filename = util.ModFilePath(filename)
 	resp, err := namenode_pb.NewNameNodeServiceClient(nameNodeConn).StatData(context.Background(), &namenode_pb.StatDataReq{
 		FileName: filename,
 	})
 	prePath := util.GetPrePath(filename)
 	if err != nil {
-		log.Println("NameNode Stat Data Error:", err)
-		return nil, err
+		zap.S().Error("NameNode Stat Data Error:", err)
+		return "", err
 	}
-	log.Println("NameNode Stat Resp:", resp.NameNodeMetaDataList)
+	zap.S().Debug("NameNode Stat Resp:", resp.NameNodeMetaDataList)
 	var modTime int64
 	var size int64
+	var mod string
 	n := 0
 	// block被获取的标志位
 	blockFetchStatus := false
@@ -249,32 +308,40 @@ func Stat(nameNodeConn *grpc.ClientConn, filename string) (*StatResp, error) {
 		for _, dni := range mdi.BlockAddresses {
 			conn, err := grpc.Dial(dni.Host+":"+dni.ServicePort, grpc.WithTransportCredentials(insecure.NewCredentials()))
 			if err != nil {
-				log.Println("cannot connect datanode:", dni.Host, ":", dni.ServicePort)
-				return nil, err
+				zap.S().Error("cannot connect datanode:", dni.Host, ":", dni.ServicePort)
+				return "", err
 			}
 			resp, err := dn.NewDataNodeClient(conn).Stat(context.Background(), &dn.StatReq{
 				BlockId: mdi.BlockId,
 				PrePath: prePath,
 			})
 			if err != nil {
-				log.Println("cannot dial method from datanode:", dni.Host, ":", dni.ServicePort)
-				return nil, err
+				zap.S().Error("cannot dial method from datanode:", dni.Host, ":", dni.ServicePort)
+				return "", err
 			}
 			size += resp.Size
 			modTime += resp.ModTime
 			n += 1
+			if mod == "" {
+				mod = resp.Mode
+			}
+
 			blockFetchStatus = true
 			break
 		}
 
 		if !blockFetchStatus {
-			return nil, errors.New("cannot Stat BlockId From DataNode" + mdi.BlockId)
+			return "", errors.New("cannot Stat BlockId From DataNode" + mdi.BlockId)
 		}
 	}
-	return &StatResp{
-		ModTime:  time.Unix(modTime/int64(n), 0),
-		FileSize: size,
-	}, nil
+	_, name := filepath.Split(filename)
+	time := time.Unix(modTime, 0).Format("2006-01-02 15:04:05")
+
+	prompt := fmt.Sprintln("Permissions\tSize\tDate Modified\tName")
+	info := fmt.Sprintf("%s\t%d\t%s\t%s", mod, size, time, name)
+	stat := fmt.Sprintf("\n%s%s", prompt, info)
+	return stat, nil
+
 }
 
 func Mkdir(nameNodeConn *grpc.ClientConn, filename string) bool {
@@ -286,25 +353,25 @@ func Mkdir(nameNodeConn *grpc.ClientConn, filename string) bool {
 	client := namenode_pb.NewNameNodeServiceClient(nameNodeConn)
 	_, err := client.Mkdir(context.Background(), &namenode_pb.MkdirReq{Path: filename})
 	if err != nil {
-		log.Println("NameNode Mkdir Error:", err)
+		zap.S().Error("NameNode Mkdir Error:", err)
 		return false
 	}
 	nodes, err := client.GetDataNodes(context.Background(), &namenode_pb.GetDataNodesReq{})
 	if err != nil {
-		log.Println("NameNode Get DataNodes Error:", err)
+		zap.S().Error("NameNode Get DataNodes Error:", err)
 		return false
 	}
 	for _, dni := range nodes.DataNodeList {
 		conn, err := grpc.Dial(dni, grpc.WithTransportCredentials(insecure.NewCredentials()))
 		if err != nil {
-			log.Println("Dial DataNodes Error:", err)
+			zap.S().Error("Dial DataNodes Error:", err)
 			return false
 		}
 		resp, err := dn.NewDataNodeClient(conn).Mkdir(context.Background(), &dn.MkdirReq{
 			Path: filename,
 		})
 		if err != nil {
-			log.Println("cannot dial method from datanode:", dni)
+			zap.S().Error("cannot dial method from datanode:", dni)
 			return false
 		}
 		if resp.Success {
@@ -323,9 +390,10 @@ func Rename(nameNodeConn *grpc.ClientConn, remoteFilePath string, renameDestPath
 		Filename: remoteFilePath,
 	})
 	if err != nil {
-		log.Println("NameNode IsDir Error:", err)
+		zap.S().Error("NameNode IsDir Error:", err)
 		return false
 	}
+	zap.S().Debug("isdir: ", resp.Ok)
 	if resp.Ok {
 		//是文件夹格式，告诉datanode更改目录名称，也要告诉NameNode更新tree
 		_, err := client.ReDirTree(context.Background(), &namenode_pb.ReDirTreeReq{
@@ -333,18 +401,18 @@ func Rename(nameNodeConn *grpc.ClientConn, remoteFilePath string, renameDestPath
 			NewPath: renameDestPath,
 		})
 		if err != nil {
-			log.Println("NameNode ReDirTree Error:", err)
+			zap.S().Error("NameNode ReDirTree Error:", err)
 			return false
 		}
 		nodes, err := client.GetDataNodes(context.Background(), &namenode_pb.GetDataNodesReq{})
 		if err != nil {
-			log.Println("NameNode Get DataNodes Error:", err)
+			zap.S().Error("NameNode Get DataNodes Error:", err)
 			return false
 		}
 		for _, dni := range nodes.DataNodeList {
 			conn, err := grpc.Dial(dni, grpc.WithTransportCredentials(insecure.NewCredentials()))
 			if err != nil {
-				log.Println("Dial DataNodes Error:", err)
+				zap.S().Error("Dial DataNodes Error:", err)
 				return false
 			}
 			renameResp, err := dn.NewDataNodeClient(conn).Rename(context.Background(), &dn.RenameReq{
@@ -352,7 +420,7 @@ func Rename(nameNodeConn *grpc.ClientConn, remoteFilePath string, renameDestPath
 				NewPath: renameDestPath,
 			})
 			if err != nil {
-				log.Println("cannot dial method from datanode:", dni)
+				zap.S().Error("cannot dial method from datanode:", dni)
 				return false
 			}
 			if renameResp.Success {
@@ -366,8 +434,9 @@ func Rename(nameNodeConn *grpc.ClientConn, remoteFilePath string, renameDestPath
 			OldFileName: remoteFilePath,
 			NewFileName: renameDestPath,
 		})
+		zap.S().Debug("file rename: ", resp.Ok)
 		if err != nil {
-			log.Println("NameNode Rename Error:", err)
+			zap.S().Error("NameNode Rename Error:", err)
 			return false
 		}
 		if !renameResp.Success {
@@ -377,18 +446,16 @@ func Rename(nameNodeConn *grpc.ClientConn, remoteFilePath string, renameDestPath
 	return true
 }
 
-func List(nameNodeConn *grpc.ClientConn, parentPath string) (*ListResp, error) {
+func List(nameNodeConn *grpc.ClientConn, parentPath string) (string, error) {
 	resp, err := namenode_pb.NewNameNodeServiceClient(nameNodeConn).List(context.Background(), &namenode_pb.ListReq{
 		ParentPath: parentPath,
 	})
 	if err != nil {
 		log.Println("NameNode List Error:", err)
-		return nil, err
+		return "", err
 	}
-	return &ListResp{
-		FileName: resp.FileName,
-		DirName:  resp.DirName,
-	}, nil
+	ls := fmt.Sprintf("dir: %s\nfile: %s", resp.DirName, resp.FileName)
+	return ls, nil
 }
 
 func PutByEc(nameNodeConn *grpc.ClientConn, sourceFilePath string, destFilePath string) bool {

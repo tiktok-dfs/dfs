@@ -31,6 +31,8 @@ message StatReq {
 message StatResp {
   int64 Size = 1;
   int64 ModTime = 2;
+  string Name = 3;
+  string Mode = 4;
 }
 
 message DeleteReq {
