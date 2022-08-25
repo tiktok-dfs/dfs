@@ -6,7 +6,6 @@ import (
 	"errors"
 	"github.com/hashicorp/raft"
 	boltdb "github.com/hashicorp/raft-boltdb"
-	"go-fs/common/config"
 	"go-fs/pkg/e"
 	"go-fs/pkg/tree"
 	"go-fs/pkg/util"
@@ -15,11 +14,8 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
-	"io"
-	"io/ioutil"
 	"log"
 	"net"
-	"path/filepath"
 	"sort"
 	"strings"
 	"time"
@@ -55,29 +51,6 @@ type Service struct {
 	DirTree            *tree.DirTree
 	RaftNode           *raft.Raft
 	RaftLog            *boltdb.BoltStore
-}
-
-func (nameNode *Service) Apply(l *raft.Log) interface{} {
-	//TODO implement me
-	marshal, err := json.Marshal(nameNode)
-	if err != nil {
-		return err
-	}
-	err = ioutil.WriteFile(filepath.Join(config.RaftCfg.RaftDataDir, "log.dat"), marshal, 0755)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (nameNode *Service) Snapshot() (raft.FSMSnapshot, error) {
-	//TODO implement me
-	return nil, nil
-}
-
-func (nameNode *Service) Restore(snapshot io.ReadCloser) error {
-	//TODO implement me
-	return nil
 }
 
 type DataNodeMessage struct {
@@ -227,6 +200,12 @@ func (nn *Service) ReadData(ctx context.Context, req *namenode_pb.ReadRequst) (*
 		res.NameNodeMetaDataList = append(res.NameNodeMetaDataList, NameNodeMetaData2PB(NameNodeMetaData{BlockId: block, BlockAddresses: blockAddresses}))
 	}
 
+	bytes, err := json.Marshal(nn)
+	if err != nil {
+		log.Println("cannot marshal data")
+		return &namenode_pb.ReadResponse{}, err
+	}
+	nn.RaftNode.Apply(bytes, time.Second*1)
 	return &res, nil
 }
 
@@ -259,10 +238,12 @@ func (nn *Service) WriteData(ctx context.Context, req *namenode_pb.WriteRequest)
 	for _, nnmd := range nameNodeMetaDataList {
 		res.NameNodeMetaDataList = append(res.NameNodeMetaDataList, NameNodeMetaData2PB(nnmd))
 	}
-	apply := nn.Apply(nil)
-	if apply != nil {
-		return &namenode_pb.WriteResponse{}, errors.New("cannot apply")
+	bytes, err := json.Marshal(nn)
+	if err != nil {
+		log.Println("cannot marshal data")
+		return &namenode_pb.WriteResponse{}, err
 	}
+	nn.RaftNode.Apply(bytes, time.Second*1)
 	return &res, nil
 }
 
@@ -403,10 +384,12 @@ func (nameNode *Service) ReDistributeData(request *ReDistributeDataRequest, repl
 
 		log.Printf("Block %s replication completed for %+v\n", blockToReplicate.BlockId, targetDataNodeIds)
 	}
-	apply := nameNode.Apply(nil)
-	if apply != nil {
-		return errors.New("cannot apply")
+	bytes, err := json.Marshal(nameNode)
+	if err != nil {
+		log.Println("cannot marshal data")
+		return err
 	}
+	nameNode.RaftNode.Apply(bytes, time.Second*1)
 	return nil
 }
 
@@ -441,10 +424,12 @@ func (s *Service) DeleteData(c context.Context, req *namenode_pb.DeleteDataReq) 
 	delete(s.FileNameToBlocks, modedFilePath)
 	zap.S().Debug("删除文件后filemap为:", s.FileNameToBlocks)
 
-	apply := s.Apply(nil)
-	if apply != nil {
-		return &namenode_pb.DeleteDataResp{}, errors.New("cannot apply")
+	bytes, err := json.Marshal(s)
+	if err != nil {
+		log.Println("cannot marshal data")
+		return &namenode_pb.DeleteDataResp{}, err
 	}
+	s.RaftNode.Apply(bytes, time.Second*1)
 	return &res, nil
 }
 
@@ -473,10 +458,12 @@ func (s *Service) StatData(c context.Context, req *namenode_pb.StatDataReq) (*na
 		res.NameNodeMetaDataList = append(res.NameNodeMetaDataList, NameNodeMetaData2PB(NameNodeMetaData{BlockId: block, BlockAddresses: blockAddresses}))
 	}
 
-	apply := s.Apply(nil)
-	if apply != nil {
-		return &namenode_pb.StatDataResp{}, errors.New("cannot apply")
+	bytes, err := json.Marshal(s)
+	if err != nil {
+		log.Println("cannot marshal data")
+		return &namenode_pb.StatDataResp{}, err
 	}
+	s.RaftNode.Apply(bytes, time.Second*1)
 	return &res, nil
 }
 
@@ -485,10 +472,12 @@ func (s *Service) GetDataNodes(c context.Context, req *namenode_pb.GetDataNodesR
 	for _, dni := range s.IdToDataNodes {
 		list = append(list, dni.Host+":"+dni.ServicePort)
 	}
-	apply := s.Apply(nil)
-	if apply != nil {
-		return &namenode_pb.GetDataNodesResp{}, errors.New("cannot apply")
+	bytes, err := json.Marshal(s)
+	if err != nil {
+		log.Println("cannot marshal data")
+		return &namenode_pb.GetDataNodesResp{}, err
 	}
+	s.RaftNode.Apply(bytes, time.Second*1)
 	return &namenode_pb.GetDataNodesResp{
 		DataNodeList: list,
 	}, nil
@@ -498,10 +487,12 @@ func (s *Service) IsDir(c context.Context, req *namenode_pb.IsDirReq) (*namenode
 	filename := util.ModPath(req.Filename)
 	//空文件夹下面会有..文件夹
 	dir := s.DirTree.FindSubDir(filename)
-	apply := s.Apply(nil)
-	if apply != nil {
-		return &namenode_pb.IsDirResp{}, errors.New("cannot apply")
+	bytes, err := json.Marshal(s)
+	if err != nil {
+		log.Println("cannot marshal data")
+		return &namenode_pb.IsDirResp{}, err
 	}
+	s.RaftNode.Apply(bytes, time.Second*1)
 	if len(dir) == 0 {
 		return &namenode_pb.IsDirResp{Ok: false}, nil
 	} else {
@@ -515,10 +506,12 @@ func (s *Service) Rename(c context.Context, req *namenode_pb.RenameReq) (*nameno
 	delete(s.FileNameToBlocks, req.OldFileName)
 	zap.S().Debug(s.FileNameToBlocks)
 	zap.S().Debugf("%v", s.DirTree)
-	apply := s.Apply(nil)
-	if apply != nil {
-		return &namenode_pb.RenameResp{}, errors.New("cannot apply")
+	bytes, err := json.Marshal(s)
+	if err != nil {
+		log.Println("cannot marshal data")
+		return &namenode_pb.RenameResp{}, err
 	}
+	s.RaftNode.Apply(bytes, time.Second*1)
 	return &namenode_pb.RenameResp{
 		Success: true,
 	}, nil
@@ -536,10 +529,12 @@ func (s *Service) Mkdir(c context.Context, req *namenode_pb.MkdirReq) (*namenode
 		zap.S().Error("插入目录失败，请确认操作是否有误")
 		return &namenode_pb.MkdirResp{}, errors.New("插入目录失败，请确认操作是否有误")
 	}
-	apply := s.Apply(nil)
-	if apply != nil {
-		return &namenode_pb.MkdirResp{}, errors.New("cannot apply")
+	bytes, err := json.Marshal(s)
+	if err != nil {
+		log.Println("cannot marshal data")
+		return &namenode_pb.MkdirResp{}, err
 	}
+	s.RaftNode.Apply(bytes, time.Second*1)
 	return &namenode_pb.MkdirResp{}, nil
 }
 
@@ -563,10 +558,12 @@ func (s *Service) List(c context.Context, req *namenode_pb.ListReq) (*namenode_p
 			fileNameList = append(fileNameList, str)
 		}
 	}
-	apply := s.Apply(nil)
-	if apply != nil {
-		return &namenode_pb.ListResp{}, errors.New("cannot apply")
+	bytes, err := json.Marshal(s)
+	if err != nil {
+		log.Println("cannot marshal data")
+		return &namenode_pb.ListResp{}, err
 	}
+	s.RaftNode.Apply(bytes, time.Second*1)
 	return &namenode_pb.ListResp{
 		FileName: fileNameList,
 		DirName:  dirNameList,
@@ -579,20 +576,24 @@ func (s *Service) ReDirTree(c context.Context, req *namenode_pb.ReDirTreeReq) (*
 	newPath := util.ModPath(req.NewPath)
 	s.DirTree.Rename(s.DirTree.Root, old, newPath)
 	log.Println("更名后的tree:", s.DirTree)
-	apply := s.Apply(nil)
-	if apply != nil {
-		return &namenode_pb.ReDirTreeResp{}, errors.New("cannot apply")
+	bytes, err := json.Marshal(s)
+	if err != nil {
+		log.Println("cannot marshal data")
+		return &namenode_pb.ReDirTreeResp{}, err
 	}
+	s.RaftNode.Apply(bytes, time.Second*1)
 	return &namenode_pb.ReDirTreeResp{Success: true}, nil
 }
 
 func (s *Service) HeartBeat(c context.Context, req *namenode_pb.HeartBeatReq) (*namenode_pb.HeartBeatResp, error) {
 	log.Println("receive heartbeat success:", req.Addr)
 	s.DataNodeHeartBeat[req.Addr] = time.Now()
-	apply := s.Apply(nil)
-	if apply != nil {
-		return &namenode_pb.HeartBeatResp{}, errors.New("cannot apply")
+	bytes, err := json.Marshal(s)
+	if err != nil {
+		log.Println("cannot marshal data")
+		return &namenode_pb.HeartBeatResp{}, err
 	}
+	s.RaftNode.Apply(bytes, time.Second*1)
 	return &namenode_pb.HeartBeatResp{Success: true}, nil
 }
 
@@ -613,10 +614,12 @@ func (s *Service) RegisterDataNode(c context.Context, req *namenode_pb.RegisterD
 		Host:        host,
 		ServicePort: port,
 	}
-	res := s.Apply(nil)
-	if res != nil {
-		return &namenode_pb.RegisterDataNodeResp{}, errors.New("cannot apply")
+	bytes, err := json.Marshal(s)
+	if err != nil {
+		log.Println("cannot marshal data")
+		return &namenode_pb.RegisterDataNodeResp{}, err
 	}
+	s.RaftNode.Apply(bytes, time.Second*1)
 	return &namenode_pb.RegisterDataNodeResp{Success: true}, nil
 }
 
@@ -628,10 +631,12 @@ func (s *Service) UpdateDataNodeMessage(c context.Context, req *namenode_pb.Upda
 		TotalDisk:  req.TotalDisk,
 		CpuPercent: req.CpuPercent,
 	}
-	res := s.Apply(nil)
-	if res != nil {
-		return &namenode_pb.UpdateDataNodeMessageResp{}, errors.New("cannot apply")
+	bytes, err := json.Marshal(s)
+	if err != nil {
+		log.Println("cannot marshal data")
+		return &namenode_pb.UpdateDataNodeMessageResp{}, err
 	}
+	s.RaftNode.Apply(bytes, time.Second*1)
 	return &namenode_pb.UpdateDataNodeMessageResp{Success: true}, nil
 }
 
@@ -641,10 +646,12 @@ func (s *Service) JoinCluster(c context.Context, req *namenode_pb.JoinClusterReq
 	if voter.Error() != nil {
 		return &namenode_pb.JoinClusterResp{}, voter.Error()
 	}
-	res := s.Apply(nil)
-	if res != nil {
-		return &namenode_pb.JoinClusterResp{}, errors.New("cannot apply")
+	bytes, err := json.Marshal(s)
+	if err != nil {
+		log.Println("cannot marshal data")
+		return &namenode_pb.JoinClusterResp{}, err
 	}
+	s.RaftNode.Apply(bytes, time.Second*1)
 	return &namenode_pb.JoinClusterResp{Success: true}, nil
 }
 
@@ -653,10 +660,12 @@ func (s *Service) FindLeader(c context.Context, req *namenode_pb.FindLeaderReq) 
 	if id == "" {
 		return &namenode_pb.FindLeaderResp{}, errors.New("cannot find leader")
 	}
-	res := s.Apply(nil)
-	if res != nil {
-		return &namenode_pb.FindLeaderResp{}, errors.New("cannot apply")
+	bytes, err := json.Marshal(s)
+	if err != nil {
+		log.Println("cannot marshal data")
+		return &namenode_pb.FindLeaderResp{}, err
 	}
+	s.RaftNode.Apply(bytes, time.Second*1)
 	return &namenode_pb.FindLeaderResp{
 		Addr: string(id),
 	}, nil
@@ -685,10 +694,12 @@ func (s *Service) ECAssignDataNode(c context.Context, req *namenode_pb.ECAssignD
 			BlockAddresses: blockAddresses,
 		})
 	}
-	res := s.Apply(nil)
-	if res != nil {
-		return &namenode_pb.ECAssignDataNodeResp{}, errors.New("cannot apply")
+	bytes, err := json.Marshal(s)
+	if err != nil {
+		log.Println("cannot marshal data")
+		return &namenode_pb.ECAssignDataNodeResp{}, err
 	}
+	s.RaftNode.Apply(bytes, time.Second*1)
 	return &namenode_pb.ECAssignDataNodeResp{
 		NameNodeMetaData: metaDataList,
 	}, nil

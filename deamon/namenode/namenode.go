@@ -58,7 +58,7 @@ func InitializeNameNodeUtil(host string, master bool, follow, raftId string, ser
 	util.Check(err)
 
 	var fsm namenode.Service
-	raftNode, tm, ldb, err := newRaft(master, follow, raftId, hostname+addr, &fsm)
+	raftNode, tm, ldb, err := newRaft(baseDir, master, follow, raftId, hostname+addr, &fsm)
 	if err != nil {
 		log.Println("start raft cluster fail:", err)
 	}
@@ -90,7 +90,11 @@ func InitializeNameNodeUtil(host string, master bool, follow, raftId string, ser
 		}
 	}(nameNodeInstance)
 
-	go listenLeaderChanges(filepath.Join(config.RaftCfg.RaftDataDir, "log.dat"), nameNodeInstance)
+	listenPath := filepath.Join(config.RaftCfg.RaftDataDir, "metadata.dat")
+	_, err = os.Create(listenPath)
+	if err != nil {
+	}
+	go listenLeaderChanges(listenPath, nameNodeInstance)
 
 	// 监测datanode的心跳
 	go checkDataNode(nameNodeInstance)
@@ -167,13 +171,11 @@ func checkDataNode(instance *namenode.Service) {
 	}
 }
 
-func newRaft(master bool, follow, myID, myAddress string, fsm raft.FSM) (*raft.Raft, *transport.Manager, *boltdb.BoltStore, error) {
+func newRaft(baseDir string, master bool, follow, myID, myAddress string, fsm raft.FSM) (*raft.Raft, *transport.Manager, *boltdb.BoltStore, error) {
 	c := raft.DefaultConfig()
 	isLeader := make(chan bool, 1)
 	c.NotifyCh = isLeader
 	c.LocalID = raft.ServerID(myID)
-
-	baseDir := filepath.Join(config.RaftCfg.RaftDataDir, myID)
 
 	ldb, err := boltdb.NewBoltStore(filepath.Join(baseDir, "logs.dat"))
 	if err != nil {
