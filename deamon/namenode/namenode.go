@@ -121,10 +121,42 @@ func listenLeaderChanges(filename string, s *namenode.Service) {
 					if s.RaftNode.State() == raft.Leader {
 						continue
 					}
+
+					// 给文件加锁
+					err := util.LockFile(filename)
+					if err != nil {
+						log.Println(err)
+					}
+
 					bytes, err := ioutil.ReadFile(filename)
 					if err != nil {
 						log.Println("cannot read file:", err)
 					}
+
+					//file, err := os.OpenFile(filename, os.O_RDONLY, 0666)
+					//if err != nil {
+					//	log.Println("cannot open file:", err)
+					//}
+					//
+					//// 读取 file 内容
+					//data := make([]byte, 9999999)
+					//index, err := file.Read(data)
+					//data = data[:index]
+					//if err != nil {
+					//	log.Println("cannot read file:", err)
+					//}
+					//err = file.Close()
+					//if err != nil {
+					//	return
+					//}
+
+					err = util.UnlockFile(filename)
+					if err != nil {
+						log.Println(err)
+					}
+
+					//log.Println("read file:", string(data))
+
 					var srv namenode.Service
 					err = json.Unmarshal(bytes, &srv)
 					if err != nil {
