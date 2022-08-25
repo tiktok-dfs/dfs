@@ -41,11 +41,6 @@ func InitializeNameNodeUtil(host string, master bool, follow, raftId string, ser
 	}
 	baseDir := filepath.Join(config.RaftCfg.RaftDataDir, raftId)
 	join := filepath.Join(baseDir, "logs.dat")
-	err = os.RemoveAll(baseDir)
-	err = os.MkdirAll(baseDir, 0755)
-	if err != nil {
-		panic(err)
-	}
 
 	log.Printf("BlockSize is %d\n", blockSize)
 	log.Printf("Replication Factor is %d\n", replicationFactor)
@@ -87,6 +82,7 @@ func InitializeNameNodeUtil(host string, master bool, follow, raftId string, ser
 			id, serverId := raftNode.LeaderWithID()
 			log.Println("当前主节点名称:", id, serverId)
 			log.Println("当前节点的元数据IdToDataNodes信息:", s.IdToDataNodes)
+			log.Println("当前节点的元数据DataNodeHeartBeat信息:", s.DataNodeHeartBeat)
 		}
 	}(nameNodeInstance)
 
@@ -177,6 +173,10 @@ func newRaft(baseDir string, master bool, follow, myID, myAddress string, fsm ra
 	c.NotifyCh = isLeader
 	c.LocalID = raft.ServerID(myID)
 
+	err := os.MkdirAll(baseDir, 0755)
+	if err != nil {
+		return nil, nil, nil, err
+	}
 	ldb, err := boltdb.NewBoltStore(filepath.Join(baseDir, "logs.dat"))
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf(`boltdb.NewBoltStore(%q): %v`, filepath.Join(baseDir, "logs.dat"), err)
