@@ -173,6 +173,12 @@ func newRaft(baseDir string, master bool, follow, myID, myAddress string, fsm ra
 	c.NotifyCh = isLeader
 	c.LocalID = raft.ServerID(myID)
 
+	if master {
+		err := os.RemoveAll(baseDir)
+		if err != nil {
+		}
+	}
+
 	err := os.MkdirAll(baseDir, 0755)
 	if err != nil {
 		return nil, nil, nil, err

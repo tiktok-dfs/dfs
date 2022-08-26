@@ -3,7 +3,7 @@ namenode:
   blocksize: 30
   replicationfactor: 2
 raft:
-  raftdatadir: D:\goWorkSpace\src\godfs-dev\dfs\cluster\
+  raftdatadir: /usr/local/dfs/cluster
 datanode:
   port: 7000
   path: /tmp/dfs/data/

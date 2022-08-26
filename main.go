@@ -36,7 +36,7 @@ func WorkByCli() {
 	clientCommand := flag.NewFlagSet("client", flag.ExitOnError)
 
 	nameNodeAddr := dataNodeCommand.String("namenode", "", "NameNode communication port")
-	dataport := dataNodeCommand.Int("port", 7000, "")
+	dataport := dataNodeCommand.Int("port", 0, "")
 	dataLocation := dataNodeCommand.String("path", "", "")
 	datanodeHost := dataNodeCommand.String("host", "", "")
 
@@ -65,7 +65,7 @@ func WorkByCli() {
 	case "datanode":
 		_ = dataNodeCommand.Parse(os.Args[2:])
 		dataNodePortPtr := int(config.DataNodeCfg.Port)
-		if *dataport != 7000 {
+		if *dataport != 0 {
 			//cmd上指定了优先使用指定的,后面亦是如此
 			dataNodePortPtr = *dataport
 		}
