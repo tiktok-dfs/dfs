@@ -2,18 +2,23 @@ package namenode
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"github.com/hashicorp/raft"
+	boltdb "github.com/hashicorp/raft-boltdb"
 	"go-fs/pkg/e"
 	"go-fs/pkg/tree"
 	"go-fs/pkg/util"
 	dn "go-fs/proto/datanode"
 	namenode_pb "go-fs/proto/namenode"
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"log"
-	"math"
+	"net"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -29,7 +34,7 @@ type ReDistributeDataRequest struct {
 
 type UnderReplicatedBlocks struct {
 	BlockId           string
-	HealthyDataNodeId uint64
+	HealthyDataNodeId int64
 }
 
 type Service struct {
@@ -38,11 +43,14 @@ type Service struct {
 	Port               uint16
 	BlockSize          uint64
 	ReplicationFactor  uint64
-	IdToDataNodes      map[uint64]util.DataNodeInstance
+	IdToDataNodes      map[int64]util.DataNodeInstance
 	FileNameToBlocks   map[string][]string
-	BlockToDataNodeIds map[string][]uint64
+	BlockToDataNodeIds map[string][]int64
 	DataNodeMessageMap map[string]DataNodeMessage
+	DataNodeHeartBeat  map[string]time.Time
 	DirTree            *tree.DirTree
+	RaftNode           *raft.Raft
+	RaftLog            *boltdb.BoltStore
 }
 
 type DataNodeMessage struct {
@@ -53,15 +61,18 @@ type DataNodeMessage struct {
 	TotalDisk  uint64
 }
 
-func NewService(blockSize uint64, replicationFactor uint64, serverPort uint16) *Service {
+func NewService(r *raft.Raft, log *boltdb.BoltStore, blockSize uint64, replicationFactor uint64, serverPort uint16) *Service {
 	return &Service{
+		RaftNode:           r,
+		RaftLog:            log,
 		Port:               serverPort,
 		BlockSize:          blockSize,
 		ReplicationFactor:  replicationFactor,
 		FileNameToBlocks:   make(map[string][]string),
-		IdToDataNodes:      make(map[uint64]util.DataNodeInstance),
-		BlockToDataNodeIds: make(map[string][]uint64),
+		IdToDataNodes:      make(map[int64]util.DataNodeInstance),
+		BlockToDataNodeIds: make(map[string][]int64),
 		DataNodeMessageMap: make(map[string]DataNodeMessage),
+		DataNodeHeartBeat:  make(map[string]time.Time),
 		DirTree:            initDirTree(),
 	}
 }
@@ -75,12 +86,12 @@ func initDirTree() *tree.DirTree {
 }
 
 // SelectRandomDataNodes 选择datanode节点
-func (nameNode *Service) SelectRandomDataNodes(availableDataNodes []uint64, replicationFactor uint64) (randomSeletctedDataNodes []uint64) {
+func (nameNode *Service) SelectRandomDataNodes(availableDataNodes []int64, replicationFactor uint64) (randomSeletctedDataNodes []int64) {
 	//已经被选的 data node, 不应该在被选择
-	dataNodePresentMap := make(map[uint64]struct{})
+	dataNodePresentMap := make(map[int64]struct{})
 
-	//根据CPU、Disk、Mem情况选择备份的data node
-	chooseDataNode := make(map[float32][]uint64)
+	//根据CPU、Disk、Mem情况选择备份的data node 现新增key作为判断参数，key为datanode加入的时间戳
+	chooseDataNode := make(map[float32][]int64)
 	for _, i := range availableDataNodes {
 		addr := nameNode.IdToDataNodes[i].Host + ":" + nameNode.IdToDataNodes[i].ServicePort
 		message := nameNode.DataNodeMessageMap[addr]
@@ -88,8 +99,8 @@ func (nameNode *Service) SelectRandomDataNodes(availableDataNodes []uint64, repl
 		diskPercent := message.UsedDisk / message.TotalDisk
 		//计算内存占用率
 		memPercent := message.UsedMem / message.TotalMem
-		//计算该datanode的加权值
-		calculate := float32(diskPercent)*0.4 + float32(memPercent)*0.4 + message.CpuPercent*0.2
+		//计算该datanode的加权值,表明按磁盘占用率30%、内存占用率30%、datanode加入时间30%、CPU利用率10%的权重比进行挑选datanode
+		calculate := float32(diskPercent)*0.3 + float32(memPercent)*0.3 + message.CpuPercent*0.1 + float32(i)*0.3
 		//存入临时map
 		chooseDataNode[calculate] = append(chooseDataNode[calculate], i)
 	}
@@ -164,58 +175,75 @@ func NameNodeMetaData2PB(nnmd NameNodeMetaData) *namenode_pb.NameNodeMetaData {
 
 // ReadData 返回metadata, 包含该文件每一个block的id与data node的地址
 func (nn *Service) ReadData(ctx context.Context, req *namenode_pb.ReadRequst) (*namenode_pb.ReadResponse, error) {
+	modedFilePath := util.ModFilePath(req.FileName)
+	zap.S().Debug("file map: ", nn.FileNameToBlocks)
+	zap.S().Debug("want file: ", modedFilePath)
+
 	var res namenode_pb.ReadResponse
 
-	_, ok := nn.FileNameToBlocks[req.FileName]
+	_, ok := nn.FileNameToBlocks[modedFilePath]
 	if !ok {
-		return nil, e.FileDoesNotExist
+		return nil, e.ErrFileDoesNotExist
 	}
-	fileBlocks := nn.FileNameToBlocks[req.FileName]
+	fileBlocks := nn.FileNameToBlocks[modedFilePath]
 
 	for _, block := range fileBlocks {
 		var blockAddresses []util.DataNodeInstance
 
-		log.Println("读取到的blockId为：", block)
+		zap.S().Debug("读取到的blockId为：", block)
 		targetDataNodeIds := nn.BlockToDataNodeIds[block]
 		for _, dataNodeId := range targetDataNodeIds {
-			log.Println("读取到的blockAddresses为：", blockAddresses)
+			zap.S().Debug("读取到的blockAddresses为：", blockAddresses)
 			blockAddresses = append(blockAddresses, nn.IdToDataNodes[dataNodeId])
 		}
 
 		res.NameNodeMetaDataList = append(res.NameNodeMetaDataList, NameNodeMetaData2PB(NameNodeMetaData{BlockId: block, BlockAddresses: blockAddresses}))
 	}
 
+	bytes, err := json.Marshal(nn)
+	if err != nil {
+		log.Println("cannot marshal data")
+		return &namenode_pb.ReadResponse{}, err
+	}
+	nn.RaftNode.Apply(bytes, time.Second*1)
 	return &res, nil
 }
 
 // WriteData 返回metadata, 包含写入文件的每一个block的id与data node的地址
 func (nn *Service) WriteData(ctx context.Context, req *namenode_pb.WriteRequest) (*namenode_pb.WriteResponse, error) {
+	modedFilePath := util.ModFilePath(req.FileName)
+	// 不允许重复写
+	if _, ok := nn.FileNameToBlocks[modedFilePath]; ok {
+		return &namenode_pb.WriteResponse{}, e.ErrDuplicatedWrite
+	}
+
 	var res namenode_pb.WriteResponse
 
-	nn.FileNameToBlocks[req.FileName] = []string{}
+	nn.FileNameToBlocks[modedFilePath] = []string{}
 
-	if !strings.HasPrefix(req.FileName, "/") {
-		req.FileName = "/" + req.FileName
-	}
-	if !strings.HasSuffix(req.FileName, "/") {
-		req.FileName = req.FileName + "/"
-	}
-	insert := nn.DirTree.Insert(req.FileName)
+	filename := util.ModPath(req.FileName)
+	insert := nn.DirTree.Insert(filename)
 	if !insert {
-		log.Println("请确认你创建的文件目录是否存在")
-		return &namenode_pb.WriteResponse{}, nil
+		return &namenode_pb.WriteResponse{}, e.ErrSubDirTree
 	}
-	log.Println("插入后目录树为", nn.DirTree.LookAll())
+	zap.S().Debugf("插入后filemap为: %v", nn.FileNameToBlocks)
+	zap.S().Debugf("插入后目录树为: %v", nn.DirTree.LookAll())
 
-	numberOfBlocksToAllocate := uint64(math.Ceil(float64(req.FileSize) / float64(nn.BlockSize)))
+	/*numberOfBlocksToAllocate := uint64(math.Ceil(float64(req.FileSize) / float64(nn.BlockSize)))
 	log.Println("分配块的数量:", numberOfBlocksToAllocate)
-
-	nameNodeMetaDataList := nn.allocateBlocks(req.FileName, numberOfBlocksToAllocate)
-	log.Println("分配块的信息：", nameNodeMetaDataList)
+	*/
+	nameNodeMetaDataList := nn.allocateBlocks(modedFilePath, req.BlockNumber)
+	zap.S().Debugf("分配块的信息： %v", nameNodeMetaDataList)
 
 	for _, nnmd := range nameNodeMetaDataList {
 		res.NameNodeMetaDataList = append(res.NameNodeMetaDataList, NameNodeMetaData2PB(nnmd))
 	}
+	bytes, err := json.Marshal(nn)
+	if err != nil {
+		log.Println("cannot marshal data")
+		return &namenode_pb.WriteResponse{}, err
+	}
+	nn.RaftNode.Apply(bytes, time.Second*1)
 	return &res, nil
 }
 
@@ -223,8 +251,8 @@ func (nameNode *Service) allocateBlocks(fileName string, numberOfBlocks uint64) 
 	//创建写入文件的 slot
 	nameNode.FileNameToBlocks[fileName] = []string{}
 
-	// 获取所有 data1 nodes 的id
-	var dataNodesAvailable []uint64
+	// 获取所有 data nodes 的id
+	var dataNodesAvailable []int64
 	for k, _ := range nameNode.IdToDataNodes {
 		dataNodesAvailable = append(dataNodesAvailable, k)
 	}
@@ -258,7 +286,7 @@ func (nameNode *Service) allocateBlocks(fileName string, numberOfBlocks uint64) 
 	return
 }
 
-func (nameNode *Service) assignDataNodes(blockId string, dataNodesAvailable []uint64, replicationFactor uint64) []uint64 {
+func (nameNode *Service) assignDataNodes(blockId string, dataNodesAvailable []int64, replicationFactor uint64) []int64 {
 	// 随机选择block备份的data nodes
 	targetDataNodeIds := nameNode.SelectRandomDataNodes(dataNodesAvailable, replicationFactor)
 	nameNode.BlockToDataNodeIds[blockId] = targetDataNodeIds
@@ -268,7 +296,7 @@ func (nameNode *Service) assignDataNodes(blockId string, dataNodesAvailable []ui
 func (nameNode *Service) ReDistributeData(request *ReDistributeDataRequest, reply *bool) error {
 	log.Printf("DataNode %s is dead, trying to redistribute data1\n", request.DataNodeUri)
 	deadDataNodeSlice := strings.Split(request.DataNodeUri, ":")
-	var deadDataNodeId uint64
+	var deadDataNodeId int64
 
 	// de-register the dead DataNode from IdToDataNodes meta
 	for id, dn := range nameNode.IdToDataNodes {
@@ -303,7 +331,7 @@ func (nameNode *Service) ReDistributeData(request *ReDistributeDataRequest, repl
 		return nil
 	}
 
-	var availableNodes []uint64
+	var availableNodes []int64
 	for k, _ := range nameNode.IdToDataNodes {
 		availableNodes = append(availableNodes, k)
 	}
@@ -356,44 +384,66 @@ func (nameNode *Service) ReDistributeData(request *ReDistributeDataRequest, repl
 
 		log.Printf("Block %s replication completed for %+v\n", blockToReplicate.BlockId, targetDataNodeIds)
 	}
-
+	bytes, err := json.Marshal(nameNode)
+	if err != nil {
+		log.Println("cannot marshal data")
+		return err
+	}
+	nameNode.RaftNode.Apply(bytes, time.Second*1)
 	return nil
 }
 
 func (s *Service) DeleteData(c context.Context, req *namenode_pb.DeleteDataReq) (*namenode_pb.DeleteDataResp, error) {
-	var res namenode_pb.DeleteDataResp
+	dirTreeFilePath := util.ModPath(req.FileName)
+	modedFilePath := util.ModFilePath(req.FileName)
 
-	_, ok := s.FileNameToBlocks[req.FileName]
+	var res namenode_pb.DeleteDataResp
+	s.DirTree.Delete(s.DirTree.Root, dirTreeFilePath)
+	zap.S().Debug("删除文件后目录树为:", s.DirTree.LookAll())
+
+	_, ok := s.FileNameToBlocks[modedFilePath]
 	if !ok {
-		return nil, e.FileDoesNotExist
+		return nil, e.ErrFileDoesNotExist
 	}
-	fileBlocks := s.FileNameToBlocks[req.FileName]
+
+	fileBlocks := s.FileNameToBlocks[modedFilePath]
 
 	for _, block := range fileBlocks {
 		var blockAddresses []util.DataNodeInstance
 
-		log.Println("读取到的blockId为：", block)
+		zap.S().Debug("读取到的blockId为：", block)
 		targetDataNodeIds := s.BlockToDataNodeIds[block]
 		for _, dataNodeId := range targetDataNodeIds {
-			log.Println("读取到的blockAddresses为：", blockAddresses)
+			zap.S().Debug("读取到的blockAddresses为：", blockAddresses)
 			blockAddresses = append(blockAddresses, s.IdToDataNodes[dataNodeId])
 		}
 
 		res.NameNodeMetaDataList = append(res.NameNodeMetaDataList, NameNodeMetaData2PB(NameNodeMetaData{BlockId: block, BlockAddresses: blockAddresses}))
 	}
 
+	delete(s.FileNameToBlocks, modedFilePath)
+	zap.S().Debug("删除文件后filemap为:", s.FileNameToBlocks)
+
+	bytes, err := json.Marshal(s)
+	if err != nil {
+		log.Println("cannot marshal data")
+		return &namenode_pb.DeleteDataResp{}, err
+	}
+	s.RaftNode.Apply(bytes, time.Second*1)
 	return &res, nil
 }
 
 // StatData TODO 有些方法都是根据文件名获取block集合可以抽取成公共方法，方法名可以改为GetBlocksFromFileName
 func (s *Service) StatData(c context.Context, req *namenode_pb.StatDataReq) (*namenode_pb.StatDataResp, error) {
+	modedFilePath := util.ModFilePath(req.FileName)
+
 	var res namenode_pb.StatDataResp
 
-	_, ok := s.FileNameToBlocks[req.FileName]
+	_, ok := s.FileNameToBlocks[modedFilePath]
 	if !ok {
-		return nil, e.FileDoesNotExist
+		return nil, e.ErrFileDoesNotExist
 	}
-	fileBlocks := s.FileNameToBlocks[req.FileName]
+	fileBlocks := s.FileNameToBlocks[modedFilePath]
 
 	for _, block := range fileBlocks {
 		var blockAddresses []util.DataNodeInstance
@@ -408,6 +458,12 @@ func (s *Service) StatData(c context.Context, req *namenode_pb.StatDataReq) (*na
 		res.NameNodeMetaDataList = append(res.NameNodeMetaDataList, NameNodeMetaData2PB(NameNodeMetaData{BlockId: block, BlockAddresses: blockAddresses}))
 	}
 
+	bytes, err := json.Marshal(s)
+	if err != nil {
+		log.Println("cannot marshal data")
+		return &namenode_pb.StatDataResp{}, err
+	}
+	s.RaftNode.Apply(bytes, time.Second*1)
 	return &res, nil
 }
 
@@ -416,6 +472,12 @@ func (s *Service) GetDataNodes(c context.Context, req *namenode_pb.GetDataNodesR
 	for _, dni := range s.IdToDataNodes {
 		list = append(list, dni.Host+":"+dni.ServicePort)
 	}
+	bytes, err := json.Marshal(s)
+	if err != nil {
+		log.Println("cannot marshal data")
+		return &namenode_pb.GetDataNodesResp{}, err
+	}
+	s.RaftNode.Apply(bytes, time.Second*1)
 	return &namenode_pb.GetDataNodesResp{
 		DataNodeList: list,
 	}, nil
@@ -425,6 +487,12 @@ func (s *Service) IsDir(c context.Context, req *namenode_pb.IsDirReq) (*namenode
 	filename := util.ModPath(req.Filename)
 	//空文件夹下面会有..文件夹
 	dir := s.DirTree.FindSubDir(filename)
+	bytes, err := json.Marshal(s)
+	if err != nil {
+		log.Println("cannot marshal data")
+		return &namenode_pb.IsDirResp{}, err
+	}
+	s.RaftNode.Apply(bytes, time.Second*1)
 	if len(dir) == 0 {
 		return &namenode_pb.IsDirResp{Ok: false}, nil
 	} else {
@@ -436,6 +504,14 @@ func (s *Service) Rename(c context.Context, req *namenode_pb.RenameReq) (*nameno
 	list := s.FileNameToBlocks[req.OldFileName]
 	s.FileNameToBlocks[req.NewFileName] = list
 	delete(s.FileNameToBlocks, req.OldFileName)
+	zap.S().Debug(s.FileNameToBlocks)
+	zap.S().Debugf("%v", s.DirTree)
+	bytes, err := json.Marshal(s)
+	if err != nil {
+		log.Println("cannot marshal data")
+		return &namenode_pb.RenameResp{}, err
+	}
+	s.RaftNode.Apply(bytes, time.Second*1)
 	return &namenode_pb.RenameResp{
 		Success: true,
 	}, nil
@@ -445,14 +521,20 @@ func (s *Service) Mkdir(c context.Context, req *namenode_pb.MkdirReq) (*namenode
 	path := util.ModPath(req.Path)
 	ok := s.DirTree.Insert(path)
 	if !ok {
-		log.Println("插入目录失败，请确认操作是否有误")
+		zap.S().Error("插入目录失败，请确认操作是否有误")
 		return &namenode_pb.MkdirResp{}, errors.New("插入目录失败，请确认操作是否有误")
 	}
 	ok = s.DirTree.Insert(path + "../")
 	if !ok {
-		log.Println("插入目录失败，请确认操作是否有误")
+		zap.S().Error("插入目录失败，请确认操作是否有误")
 		return &namenode_pb.MkdirResp{}, errors.New("插入目录失败，请确认操作是否有误")
 	}
+	bytes, err := json.Marshal(s)
+	if err != nil {
+		log.Println("cannot marshal data")
+		return &namenode_pb.MkdirResp{}, err
+	}
+	s.RaftNode.Apply(bytes, time.Second*1)
 	return &namenode_pb.MkdirResp{}, nil
 }
 
@@ -476,6 +558,12 @@ func (s *Service) List(c context.Context, req *namenode_pb.ListReq) (*namenode_p
 			fileNameList = append(fileNameList, str)
 		}
 	}
+	bytes, err := json.Marshal(s)
+	if err != nil {
+		log.Println("cannot marshal data")
+		return &namenode_pb.ListResp{}, err
+	}
+	s.RaftNode.Apply(bytes, time.Second*1)
 	return &namenode_pb.ListResp{
 		FileName: fileNameList,
 		DirName:  dirNameList,
@@ -488,5 +576,131 @@ func (s *Service) ReDirTree(c context.Context, req *namenode_pb.ReDirTreeReq) (*
 	newPath := util.ModPath(req.NewPath)
 	s.DirTree.Rename(s.DirTree.Root, old, newPath)
 	log.Println("更名后的tree:", s.DirTree)
+	bytes, err := json.Marshal(s)
+	if err != nil {
+		log.Println("cannot marshal data")
+		return &namenode_pb.ReDirTreeResp{}, err
+	}
+	s.RaftNode.Apply(bytes, time.Second*1)
 	return &namenode_pb.ReDirTreeResp{Success: true}, nil
+}
+
+func (s *Service) HeartBeat(c context.Context, req *namenode_pb.HeartBeatReq) (*namenode_pb.HeartBeatResp, error) {
+	log.Println("receive heartbeat success:", req.Addr)
+	s.DataNodeHeartBeat[req.Addr] = time.Now()
+	bytes, err := json.Marshal(s)
+	if err != nil {
+		log.Println("cannot marshal data")
+		return &namenode_pb.HeartBeatResp{}, err
+	}
+	s.RaftNode.Apply(bytes, time.Second*1)
+	return &namenode_pb.HeartBeatResp{Success: true}, nil
+}
+
+func (s *Service) RegisterDataNode(c context.Context, req *namenode_pb.RegisterDataNodeReq) (*namenode_pb.RegisterDataNodeResp, error) {
+	s.DataNodeHeartBeat[req.Addr] = time.Now()
+	s.DataNodeMessageMap[req.Addr] = DataNodeMessage{
+		UsedDisk:   req.UsedDisk,
+		UsedMem:    req.UsedMem,
+		TotalMem:   req.TotalMem,
+		TotalDisk:  req.TotalDisk,
+		CpuPercent: req.CpuPercent,
+	}
+	host, port, err := net.SplitHostPort(req.Addr)
+	if err != nil {
+		return &namenode_pb.RegisterDataNodeResp{}, err
+	}
+	s.IdToDataNodes[time.Now().Unix()] = util.DataNodeInstance{
+		Host:        host,
+		ServicePort: port,
+	}
+	bytes, err := json.Marshal(s)
+	if err != nil {
+		log.Println("cannot marshal data")
+		return &namenode_pb.RegisterDataNodeResp{}, err
+	}
+	s.RaftNode.Apply(bytes, time.Second*1)
+	return &namenode_pb.RegisterDataNodeResp{Success: true}, nil
+}
+
+func (s *Service) UpdateDataNodeMessage(c context.Context, req *namenode_pb.UpdateDataNodeMessageReq) (*namenode_pb.UpdateDataNodeMessageResp, error) {
+	s.DataNodeMessageMap[req.Addr] = DataNodeMessage{
+		UsedDisk:   req.UsedDisk,
+		UsedMem:    req.UsedMem,
+		TotalMem:   req.TotalMem,
+		TotalDisk:  req.TotalDisk,
+		CpuPercent: req.CpuPercent,
+	}
+	bytes, err := json.Marshal(s)
+	if err != nil {
+		log.Println("cannot marshal data")
+		return &namenode_pb.UpdateDataNodeMessageResp{}, err
+	}
+	s.RaftNode.Apply(bytes, time.Second*1)
+	return &namenode_pb.UpdateDataNodeMessageResp{Success: true}, nil
+}
+
+func (s *Service) JoinCluster(c context.Context, req *namenode_pb.JoinClusterReq) (*namenode_pb.JoinClusterResp, error) {
+	log.Println("申请加入集群的节点信息为:", req.Id, " ", req.Addr)
+	voter := s.RaftNode.AddVoter(raft.ServerID(req.Id), raft.ServerAddress(req.Addr), req.PreviousIndex, 0)
+	if voter.Error() != nil {
+		return &namenode_pb.JoinClusterResp{}, voter.Error()
+	}
+	bytes, err := json.Marshal(s)
+	if err != nil {
+		log.Println("cannot marshal data")
+		return &namenode_pb.JoinClusterResp{}, err
+	}
+	s.RaftNode.Apply(bytes, time.Second*1)
+	return &namenode_pb.JoinClusterResp{Success: true}, nil
+}
+
+func (s *Service) FindLeader(c context.Context, req *namenode_pb.FindLeaderReq) (*namenode_pb.FindLeaderResp, error) {
+	id, _ := s.RaftNode.LeaderWithID()
+	if id == "" {
+		return &namenode_pb.FindLeaderResp{}, errors.New("cannot find leader")
+	}
+	bytes, err := json.Marshal(s)
+	if err != nil {
+		log.Println("cannot marshal data")
+		return &namenode_pb.FindLeaderResp{}, err
+	}
+	s.RaftNode.Apply(bytes, time.Second*1)
+	return &namenode_pb.FindLeaderResp{
+		Addr: string(id),
+	}, nil
+}
+
+func (s *Service) ECAssignDataNode(c context.Context, req *namenode_pb.ECAssignDataNodeReq) (*namenode_pb.ECAssignDataNodeResp, error) {
+	s.FileNameToBlocks[req.Filename] = []string{}
+	var metaDataList []*namenode_pb.NameNodeMetaData
+	var dataNodesAvailable []int64
+	for k, _ := range s.IdToDataNodes {
+		dataNodesAvailable = append(dataNodesAvailable, k)
+	}
+	for i := 0; i < int(req.DatanodeNumber); i++ {
+		blockId := uuid.New().String()
+		s.FileNameToBlocks[req.Filename] = append(s.FileNameToBlocks[req.Filename], blockId)
+		dataNodes := s.assignDataNodes(blockId, dataNodesAvailable, 1)
+		var blockAddresses []*namenode_pb.DataNodeInstance
+		for _, id := range dataNodes {
+			blockAddresses = append(blockAddresses, &namenode_pb.DataNodeInstance{
+				Host:        s.IdToDataNodes[id].Host,
+				ServicePort: s.IdToDataNodes[id].ServicePort,
+			})
+		}
+		metaDataList = append(metaDataList, &namenode_pb.NameNodeMetaData{
+			BlockId:        blockId,
+			BlockAddresses: blockAddresses,
+		})
+	}
+	bytes, err := json.Marshal(s)
+	if err != nil {
+		log.Println("cannot marshal data")
+		return &namenode_pb.ECAssignDataNodeResp{}, err
+	}
+	s.RaftNode.Apply(bytes, time.Second*1)
+	return &namenode_pb.ECAssignDataNodeResp{
+		NameNodeMetaData: metaDataList,
+	}, nil
 }

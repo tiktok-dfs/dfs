@@ -1,9 +1,12 @@
 package util
 
 import (
+	"go.uber.org/zap"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
+	"syscall"
 )
 
 type DataNodeInstance struct {
@@ -13,8 +16,7 @@ type DataNodeInstance struct {
 
 func Check(e error) {
 	if e != nil {
-		log.Println(e)
-		panic(e)
+		zap.L().Error(e.Error())
 	}
 }
 
@@ -61,4 +63,50 @@ func ModPath(path string) string {
 		path = "/" + path
 	}
 	return path
+}
+
+// ModFilePath 修改path格式
+func ModFilePath(path string) string {
+	if strings.HasSuffix(path, "/") {
+		path = strings.TrimRight(path, "/")
+	}
+	if !strings.HasPrefix(path, "/") {
+		path = "/" + path
+	}
+	return path
+}
+
+// GetPrePath 获取文件名的前缀路径
+func GetPrePath(filename string) string {
+	dir, _ := filepath.Split(filename)
+	return dir
+}
+
+// LockFile 文件加锁
+func LockFile(filename string) error {
+
+	file, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE, 0666)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	err = syscall.Flock(int(file.Fd()), syscall.LOCK_EX)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// UnlockFile 解锁文件
+func UnlockFile(filename string) error {
+	file, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE, 0666)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	err = syscall.Flock(int(file.Fd()), syscall.LOCK_UN)
+	if err != nil {
+		return err
+	}
+	return nil
 }

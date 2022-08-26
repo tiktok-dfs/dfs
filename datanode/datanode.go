@@ -4,16 +4,20 @@ import (
 	"bufio"
 	"context"
 	"errors"
+	"fmt"
 	"github.com/shirou/gopsutil/cpu"
 	"github.com/shirou/gopsutil/disk"
 	"github.com/shirou/gopsutil/mem"
 	"go-fs/pkg/util"
 	dn "go-fs/proto/datanode"
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"io/ioutil"
 	"log"
 	"os"
+	"path"
+	"path/filepath"
 	"strings"
 	"time"
 )
@@ -100,18 +104,20 @@ func (s *Server) forwardForReplication(request *dn.PutReq, reply *dn.PutResp) (*
 }
 
 func (s *Server) Put(c context.Context, req *dn.PutReq) (*dn.PutResp, error) {
-	log.Println("写入blockId为", req.BlockId)
-	fileWriteHandler, err := os.Create(s.DataDirectory + req.BlockId)
+	zap.S().Debug("写入blockId为", req.BlockId)
+	fileWriteHandler, err := os.Create(s.DataDirectory + req.Path + req.BlockId)
 	if err != nil {
-		log.Println("data directory create error:", err)
+		zap.S().Debug("data directory create error: ", err)
+		return nil, err
 	}
-	log.Println("data directory create success")
-	util.Check(err)
 	defer fileWriteHandler.Close()
+	zap.S().Debug("data directory create success")
 
 	fileWriter := bufio.NewWriter(fileWriteHandler)
-	_, err = fileWriter.WriteString(req.Data)
-	util.Check(err)
+	_, err = fileWriter.WriteString(string(req.Data))
+	if err != nil {
+		return nil, errors.New("写文件失败")
+	}
 	fileWriter.Flush()
 	resp := dn.PutResp{Success: true}
 	replication, err := s.forwardForReplication(req, &resp)
@@ -119,37 +125,44 @@ func (s *Server) Put(c context.Context, req *dn.PutReq) (*dn.PutResp, error) {
 }
 
 func (s *Server) Get(c context.Context, req *dn.GetReq) (*dn.GetResp, error) {
-	log.Println("读取的BlockId为：", req.BlockId)
-	dataBytes, err := ioutil.ReadFile(s.DataDirectory + req.BlockId)
+	zap.S().Debug("读取的BlockId为：", req.BlockId)
+	dataBytes, err := ioutil.ReadFile(s.DataDirectory + req.PrePath + req.BlockId)
 	if err != nil {
 		return &dn.GetResp{}, err
 	}
-	return &dn.GetResp{Data: string(dataBytes)}, nil
+	return &dn.GetResp{Data: dataBytes}, nil
 }
 
 func (s *Server) Delete(c context.Context, req *dn.DeleteReq) (*dn.DeleteResp, error) {
-	_, err := os.Open(s.DataDirectory + req.BlockId)
+	_, err := os.Open(s.DataDirectory + req.PrePath + req.BlockId)
+	zap.S().Debug("will open: "+s.DataDirectory+req.PrePath+req.BlockId, " required: ", req.PrePath, req.BlockId)
 	if err != nil {
-		log.Println("文件已经被删掉")
+		zap.S().Debug("文件已经被删掉")
 		return &dn.DeleteResp{Success: true}, nil
 	}
-	err = os.Remove(s.DataDirectory + req.BlockId)
+	err = os.Remove(s.DataDirectory + req.PrePath + req.BlockId)
 	if err != nil {
 		return &dn.DeleteResp{}, err
 	}
-	log.Println("成功删除文件")
+	zap.S().Debug("成功删除文件")
 	return &dn.DeleteResp{Success: true}, nil
 }
 
 func (s *Server) Stat(c context.Context, req *dn.StatReq) (*dn.StatResp, error) {
-	stat, err := os.Stat(s.DataDirectory + req.BlockId)
+	p := path.Join(s.DataDirectory + req.PrePath + req.BlockId)
+	zap.S().Debug("Stat: ", p)
+	stat, err := os.Stat(p)
 	if err != nil {
-		log.Println("cannot stat the file:", err)
+		zap.S().Error("cannot stat the file:", err)
 		return &dn.StatResp{}, err
 	}
+	_, name := filepath.Split(stat.Name())
+	mod := fmt.Sprintf("%s", stat.Mode())
 	return &dn.StatResp{
 		Size:    stat.Size(),
 		ModTime: stat.ModTime().Unix(),
+		Name:    name,
+		Mode:    mod,
 	}, nil
 }
 
@@ -181,10 +194,10 @@ func (s *Server) Mkdir(c context.Context, req *dn.MkdirReq) (*dn.MkdirResp, erro
 	}
 	err := os.MkdirAll(s.DataDirectory+path, 0755)
 	if err != nil {
-		log.Println("cannot mkdir the file:", err)
+		zap.S().Error("cannot mkdir the file:", err)
 		return &dn.MkdirResp{}, err
 	}
-	log.Println("成功创建目录")
+	zap.S().Info("成功创建目录")
 	return &dn.MkdirResp{Success: true}, nil
 }
 

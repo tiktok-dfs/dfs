@@ -1,6 +1,14 @@
 package namenode
 
 import (
+	boltdb "github.com/hashicorp/raft-boltdb"
+	"go-fs/common/config"
+	"path/filepath"
+	"testing"
+)
+
+/*
+import (
 	"context"
 	"go-fs/pkg/util"
 	namenode_pb "go-fs/proto/namenode"
@@ -13,8 +21,8 @@ func TestNameNodeCreation(t *testing.T) {
 		BlockSize:          4,
 		ReplicationFactor:  2,
 		FileNameToBlocks:   make(map[string][]string),
-		IdToDataNodes:      make(map[uint64]util.DataNodeInstance),
-		BlockToDataNodeIds: make(map[string][]uint64),
+		IdToDataNodes:      make(map[int64]util.DataNodeInstance),
+		BlockToDataNodeIds: make(map[string][]int64),
 	}
 
 	testDataNodeInstance1 := util.DataNodeInstance{Host: "localhost", ServicePort: "1234"}
@@ -33,8 +41,8 @@ func TestNameNodeServiceWrite(t *testing.T) {
 		BlockSize:          4,
 		ReplicationFactor:  2,
 		FileNameToBlocks:   make(map[string][]string),
-		IdToDataNodes:      make(map[uint64]util.DataNodeInstance),
-		BlockToDataNodeIds: make(map[string][]uint64),
+		IdToDataNodes:      make(map[int64]util.DataNodeInstance),
+		BlockToDataNodeIds: make(map[string][]int64),
 		DataNodeMessageMap: make(map[string]DataNodeMessage),
 		DirTree:            initDirTree(),
 	}
@@ -46,7 +54,6 @@ func TestNameNodeServiceWrite(t *testing.T) {
 
 	writeDataPayload := &namenode_pb.WriteRequest{
 		FileName: "foo",
-		FileSize: 12,
 	}
 
 	response, err := testNameNodeService.WriteData(context.Background(), writeDataPayload)
@@ -54,4 +61,31 @@ func TestNameNodeServiceWrite(t *testing.T) {
 	if len(response.NameNodeMetaDataList) != 3 {
 		t.Errorf("Unable to set metadata correctly; Expected: %d, found: %d.", 3, len(response.NameNodeMetaDataList))
 	}
+}
+*/
+
+func TestService_RegisterDataNode(t *testing.T) {
+
+	config.ReadCfg()
+	config.Init()
+
+	baseDir := filepath.Join(config.RaftCfg.RaftDataDir, "node1")
+	join := filepath.Join(baseDir, "logs.dat")
+	store, err := boltdb.NewBoltStore(join)
+	if err != nil {
+		panic(err)
+	}
+	err = store.Set([]byte("update"), []byte("update"))
+	if err != nil {
+		panic(err)
+	}
+	err = store.Set([]byte("update"), []byte("test"))
+	if err != nil {
+		panic(err)
+	}
+	get, err := store.Get([]byte("update"))
+	if err != nil {
+		panic(err)
+	}
+	t.Log(string(get))
 }

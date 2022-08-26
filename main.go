@@ -1,38 +1,60 @@
 package main
 
 import (
+	"bufio"
 	"flag"
+	"go-fs/common/config"
 	"go-fs/deamon/client"
 	"go-fs/deamon/datanode"
 	"go-fs/deamon/namenode"
+	"go-fs/pkg/logger"
+	"go.uber.org/zap"
 	"log"
 	"os"
-	"strings"
+	"sync"
 )
+
+var once sync.Once
+
+func init() {
+	once.Do(func() {
+		config.ReadCfg()
+		config.Init()
+	})
+}
 
 func main() {
 	WorkByCli()
 }
 
 func WorkByCli() {
+
+	logger.InitLogger()
+
 	dataNodeCommand := flag.NewFlagSet("datanode", flag.ExitOnError)
 	nameNodeCommand := flag.NewFlagSet("namenode", flag.ExitOnError)
 	clientCommand := flag.NewFlagSet("client", flag.ExitOnError)
 
-	dataNodePortPtr := dataNodeCommand.Int("port", 7000, "DataNode communication port")
-	dataNodeDataLocationPtr := dataNodeCommand.String("data-location", ".", "DataNode data storage location")
+	nameNodeAddr := dataNodeCommand.String("namenode", "", "NameNode communication port")
+	dataport := dataNodeCommand.Int("port", 7000, "")
+	dataLocation := dataNodeCommand.String("path", "", "")
+	datanodeHost := dataNodeCommand.String("host", "", "")
 
-	nameNodePortPtr := nameNodeCommand.Int("port", 9000, "NameNode communication port")
-	nameNodeListPtr := nameNodeCommand.String("datanodes", "", "Comma-separated list of DataNodes to connect to")
-	nameNodeBlockSizePtr := nameNodeCommand.Int("block-size", 32, "Block size to store")
-	nameNodeReplicationFactorPtr := nameNodeCommand.Int("replication-factor", 1, "Replication factor of the system")
+	master := nameNodeCommand.Bool("master", false, "start by boostrap")
+	follow := nameNodeCommand.String("follow", "", "")
+	port := nameNodeCommand.Int("port", 0, "")
+	raftid := nameNodeCommand.String("raftid", "", "")
+	host := nameNodeCommand.String("host", "", "")
 
 	clientNameNodePortPtr := clientCommand.String("namenode", "localhost:9000", "NameNode communication port")
 	clientOperationPtr := clientCommand.String("operation", "", "Operation to perform")
 	clientSourcePathPtr := clientCommand.String("source-path", "", "Source path of the file")
+	clientDestPathPtr := clientCommand.String("dest-path", "", "destination path of the file")
 	clientFilenamePtr := clientCommand.String("filename", "", "File name")
 	clientOldFilenamePtr := clientCommand.String("old", "", "Old File Name")
 	clientNewFilenamePtr := clientCommand.String("new", "", "New File Name")
+	ec := clientCommand.Bool("ec", false, "put data by EC")
+	dead := clientCommand.String("dead", "", "dead datanode addr")
 
 	if len(os.Args) < 2 {
 		log.Println("sub-command is required")
@@ -42,57 +64,114 @@ func WorkByCli() {
 	switch os.Args[1] {
 	case "datanode":
 		_ = dataNodeCommand.Parse(os.Args[2:])
-		datanode.InitializeDataNodeUtil(*dataNodePortPtr, *dataNodeDataLocationPtr)
+		dataNodePortPtr := int(config.DataNodeCfg.Port)
+		if *dataport != 7000 {
+			//cmd上指定了优先使用指定的,后面亦是如此
+			dataNodePortPtr = *dataport
+		}
+		dataNodeDataLocationPtr := config.DataNodeCfg.Path
+		if *dataLocation != "" {
+			dataNodeDataLocationPtr = *dataLocation
+		}
+		datanode.InitializeDataNodeUtil(*datanodeHost, *nameNodeAddr, dataNodePortPtr, dataNodeDataLocationPtr)
 
 	case "namenode":
 		_ = nameNodeCommand.Parse(os.Args[2:])
-		var listOfDataNodes []string
-		if len(*nameNodeListPtr) > 1 {
-			listOfDataNodes = strings.Split(*nameNodeListPtr, ",")
-		} else {
-			listOfDataNodes = []string{}
+		nameNodePort := int(config.NameNodeCfg.Port)
+		raftId := config.RaftCfg.RaftId
+		if *port != 0 {
+			nameNodePort = *port
 		}
-		namenode.InitializeNameNodeUtil(*nameNodePortPtr, *nameNodeBlockSizePtr, *nameNodeReplicationFactorPtr, listOfDataNodes)
+		if *raftid != "" {
+			raftId = *raftid
+		}
+		nameNodeBlockSize := config.NameNodeCfg.BlockSize
+		nameNodeReplicationFactor := config.NameNodeCfg.ReplicationFactor
+		namenode.InitializeNameNodeUtil(*host, *master, *follow, raftId, nameNodePort, int(nameNodeBlockSize), int(nameNodeReplicationFactor))
 
 	case "client":
 		_ = clientCommand.Parse(os.Args[2:])
 
-		if *clientOperationPtr == "put" {
-			status := client.PutHandler(*clientNameNodePortPtr, *clientSourcePathPtr, *clientFilenamePtr)
-			log.Printf("Put status: %t\n", status)
+		if !*ec {
+			if *clientOperationPtr == "put" {
+				status, err := client.PutHandler(*clientNameNodePortPtr, *clientSourcePathPtr, *clientFilenamePtr)
+				if err != nil {
+					log.Println(err.Error())
+				}
+				log.Printf("Put status: %t\n", status)
 
-		} else if *clientOperationPtr == "get" {
-			contents, status := client.GetHandler(*clientNameNodePortPtr, *clientFilenamePtr)
-			log.Printf("Get status: %t\n", status)
-			if status {
+			} else if *clientOperationPtr == "get" {
+				contents, status, err := client.GetHandler(*clientNameNodePortPtr, *clientFilenamePtr)
+				if err != nil {
+					log.Println(err.Error())
+				}
+				log.Printf("Get status: %t\n", status)
+				if !status {
+					return
+				}
+
 				log.Println(contents)
+
+				fileWriteHandler, err := os.Create(*clientDestPathPtr)
+				defer fileWriteHandler.Close()
+				if err != nil {
+					log.Println("请检查路径")
+					return
+				}
+
+				fileWriter := bufio.NewWriter(fileWriteHandler)
+				fileWriter.WriteString(contents)
+				fileWriter.Flush()
+
+			} else if *clientOperationPtr == "delete" {
+				status, err := client.DeleteHandler(*clientNameNodePortPtr, *clientFilenamePtr)
+				if err != nil {
+					log.Println(err.Error())
+				}
+				log.Println("Delete Status:", status)
+
+			} else if *clientOperationPtr == "stat" {
+				resp, err := client.StatHandler(*clientNameNodePortPtr, *clientFilenamePtr)
+				if err != nil {
+					zap.S().Debug("Stat Error:", err)
+					log.Println("state file failed")
+					return
+				}
+				log.Println(resp)
+
+			} else if *clientOperationPtr == "mkdir" {
+				status := client.MkdirHandler(*clientNameNodePortPtr, *clientFilenamePtr)
+				log.Println("Mkdir Status:", status)
+
+			} else if *clientOperationPtr == "mv" {
+				status := client.RenameHandle(*clientNameNodePortPtr, *clientOldFilenamePtr, *clientNewFilenamePtr)
+				log.Println("mv Status:", status)
+
+			} else if *clientOperationPtr == "ls" {
+				resp, err := client.ListHandler(*clientNameNodePortPtr, *clientFilenamePtr)
+				if err != nil {
+					zap.S().Debug("Ls Error:", err)
+					return
+				}
+				log.Println(resp)
 			}
-
-		} else if *clientOperationPtr == "delete" {
-			status := client.DeleteHandler(*clientNameNodePortPtr, *clientFilenamePtr)
-			log.Println("Delete Status:", status)
-
-		} else if *clientOperationPtr == "stat" {
-			resp, err := client.StatHandler(*clientNameNodePortPtr, *clientFilenamePtr)
-			if err != nil {
-				log.Println("Stat Error:", err)
+		} else {
+			if *clientOperationPtr == "put" {
+				status := client.PutByEcHandler(*clientNameNodePortPtr, *clientSourcePathPtr, *clientFilenamePtr)
+				log.Printf("PutByEc status: %t\n", status)
+			} else if *clientOperationPtr == "get" {
+				contents, status := client.GetByEcHandler(*clientNameNodePortPtr, *clientFilenamePtr)
+				log.Printf("GetByEc status: %t\n", status)
+				if status {
+					log.Println(contents)
+				}
+			} else if *clientOperationPtr == "recover" {
+				contents, status := client.RecoverDataHandler(*clientNameNodePortPtr, *clientFilenamePtr, *dead)
+				log.Printf("Recover status: %t\n", status)
+				if status {
+					log.Println(contents)
+				}
 			}
-			log.Println("Stat Data Message:\n", "FileName:", *clientFilenamePtr, "FileSize:", resp.FileSize, "FileModTime:", resp.ModTime)
-
-		} else if *clientOperationPtr == "mkdir" {
-			status := client.MkdirHandler(*clientNameNodePortPtr, *clientFilenamePtr)
-			log.Println("Mkdir Status:", status)
-
-		} else if *clientOperationPtr == "mv" {
-			status := client.RenameHandle(*clientNameNodePortPtr, *clientOldFilenamePtr, *clientNewFilenamePtr)
-			log.Println("mv Status:", status)
-
-		} else if *clientOperationPtr == "ls" {
-			resp, err := client.ListHandler(*clientNameNodePortPtr, *clientFilenamePtr)
-			if err != nil {
-				log.Println("Ls Error:", err)
-			}
-			log.Println("ls Data:", resp)
 		}
 	}
 }
