@@ -12,6 +12,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/health"
 	"google.golang.org/grpc/health/grpc_health_v1"
+	"google.golang.org/grpc/keepalive"
 	"log"
 	"net"
 	"os"
@@ -39,7 +40,9 @@ func InitializeDataNodeUtil(host, nameNodeAddr string, serverPort int, dataLocat
 	listener, err := net.Listen("tcp", addr)
 	util.Check(err)
 
-	server := grpc.NewServer()
+	server := grpc.NewServer(grpc.KeepaliveParams(keepalive.ServerParameters{
+		MaxConnectionIdle: 5 * time.Second,
+	}))
 	dn.RegisterDataNodeServer(server, dataNodeInstance)
 
 	grpc_health_v1.RegisterHealthServer(server, health.NewServer())
@@ -90,7 +93,11 @@ func InitializeDataNodeUtil(host, nameNodeAddr string, serverPort int, dataLocat
 		if err != nil {
 
 		}
-		resp, err := nn.NewNameNodeServiceClient(conn).RegisterDataNode(context.Background(), &nn.RegisterDataNodeReq{
+		resp, err := nn.NewNameNodeServiceClient(conn).RegisterDataNode(context.Background())
+		if err != nil {
+			continue
+		}
+		err = resp.Send(&nn.RegisterDataNodeReq{
 			Addr:       hostname + ":" + strconv.Itoa(int(dataNodeInstance.ServicePort)),
 			UsedDisk:   usedDisk,
 			UsedMem:    usedMem,
@@ -101,10 +108,7 @@ func InitializeDataNodeUtil(host, nameNodeAddr string, serverPort int, dataLocat
 		if err != nil {
 			continue
 		}
-		if resp.Success {
-			log.Println("register success")
-			break
-		}
+
 	}
 
 	log.Println("DataNode daemon started on port: " + strconv.Itoa(serverPort))
@@ -130,11 +134,19 @@ func listenLeader(addr string, instance *datanode.Server) {
 				//表明连接不上，继续遍历节点
 				continue
 			}
-			resp, err := nn.NewNameNodeServiceClient(conn).FindLeader(context.Background(), &nn.FindLeaderReq{})
+			resp, err := nn.NewNameNodeServiceClient(conn).FindLeader(context.Background())
 			if err != nil {
 				continue
 			}
-			host, port, err := net.SplitHostPort(resp.Addr)
+			err = resp.Send(&nn.FindLeaderReq{})
+			if err != nil {
+				continue
+			}
+			leaderResp, err := resp.Recv()
+			if err != nil {
+				continue
+			}
+			host, port, err := net.SplitHostPort(leaderResp.Addr)
 			if err != nil {
 				panic(err)
 			}

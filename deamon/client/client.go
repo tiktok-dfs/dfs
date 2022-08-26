@@ -109,17 +109,23 @@ func listenLeader(s *Service, address string) {
 			conn, err := grpc.Dial(n, grpc.WithTransportCredentials(insecure.NewCredentials()))
 			if err != nil {
 				//表明连接不上，继续遍历节点
-				log.Println(err)
 				continue
 			}
-			resp, err := nn.NewNameNodeServiceClient(conn).FindLeader(context.Background(), &nn.FindLeaderReq{})
+			resp, err := nn.NewNameNodeServiceClient(conn).FindLeader(context.Background())
 			if err != nil {
-				log.Println(err)
 				continue
 			}
-			host, port, err := net.SplitHostPort(resp.Addr)
+			err = resp.Send(&nn.FindLeaderReq{})
 			if err != nil {
-				panic(err)
+				continue
+			}
+			recv, err := resp.Recv()
+			if err != nil {
+				continue
+			}
+			host, port, err := net.SplitHostPort(recv.Addr)
+			if err != nil {
+				continue
 			}
 			s.NameNodeHost = host
 			s.NameNodePort = port

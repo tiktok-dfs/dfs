@@ -3,7 +3,10 @@ package main
 import (
 	"bufio"
 	"flag"
-	"go-fs/common/config"
+	cli "github.com/opentrx/seata-golang/v2/pkg/client"
+	"github.com/opentrx/seata-golang/v2/pkg/client/config"
+	l "github.com/opentrx/seata-golang/v2/pkg/util/log"
+	c "go-fs/common/config"
 	"go-fs/deamon/client"
 	"go-fs/deamon/datanode"
 	"go-fs/deamon/namenode"
@@ -18,8 +21,11 @@ var once sync.Once
 
 func init() {
 	once.Do(func() {
-		config.ReadCfg()
-		config.Init()
+		c.ReadCfg()
+		c.Init()
+		configuration := config.InitConfiguration("D:\\goWorkSpace\\src\\godfs-dev\\dfs\\namenode\\config\\config.yml")
+		cli.Init(configuration)
+		l.Init(configuration.Log.LogPath, configuration.Log.LogLevel)
 	})
 }
 
@@ -64,12 +70,12 @@ func WorkByCli() {
 	switch os.Args[1] {
 	case "datanode":
 		_ = dataNodeCommand.Parse(os.Args[2:])
-		dataNodePortPtr := int(config.DataNodeCfg.Port)
+		dataNodePortPtr := int(c.DataNodeCfg.Port)
 		if *dataport != 7000 {
 			//cmd上指定了优先使用指定的,后面亦是如此
 			dataNodePortPtr = *dataport
 		}
-		dataNodeDataLocationPtr := config.DataNodeCfg.Path
+		dataNodeDataLocationPtr := c.DataNodeCfg.Path
 		if *dataLocation != "" {
 			dataNodeDataLocationPtr = *dataLocation
 		}
@@ -77,16 +83,16 @@ func WorkByCli() {
 
 	case "namenode":
 		_ = nameNodeCommand.Parse(os.Args[2:])
-		nameNodePort := int(config.NameNodeCfg.Port)
-		raftId := config.RaftCfg.RaftId
+		nameNodePort := int(c.NameNodeCfg.Port)
+		raftId := c.RaftCfg.RaftId
 		if *port != 0 {
 			nameNodePort = *port
 		}
 		if *raftid != "" {
 			raftId = *raftid
 		}
-		nameNodeBlockSize := config.NameNodeCfg.BlockSize
-		nameNodeReplicationFactor := config.NameNodeCfg.ReplicationFactor
+		nameNodeBlockSize := c.NameNodeCfg.BlockSize
+		nameNodeReplicationFactor := c.NameNodeCfg.ReplicationFactor
 		namenode.InitializeNameNodeUtil(*host, *master, *follow, raftId, nameNodePort, int(nameNodeBlockSize), int(nameNodeReplicationFactor))
 
 	case "client":

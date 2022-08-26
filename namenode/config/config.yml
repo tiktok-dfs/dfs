@@ -1,0 +1,16 @@
+addressing: aggregationSvc
+serverAddressing: localhost:8091
+tm:
+  commitRetryCount: 5
+  rollbackRetryCount: 5
+clientParameters:
+  time: 10s
+  timeout: 20s
+  permitWithoutStream: true
+clientTLS:
+  enable: false
+  certFilePath: ""
+  serverName: "test.seata.io"
+log:
+  logPath: D:\goWorkSpace\src\godfs-dev\dfs\seata.log
+  logLevel: info

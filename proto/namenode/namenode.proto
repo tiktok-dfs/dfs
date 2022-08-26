@@ -19,9 +19,9 @@ service NameNodeService {
   rpc List(ListReq) returns (ListResp);
   rpc ReDirTree(ReDirTreeReq) returns (ReDirTreeResp);
   rpc HeartBeat(HeartBeatReq) returns (HeartBeatResp);
-  rpc RegisterDataNode(RegisterDataNodeReq) returns (RegisterDataNodeResp);
-  rpc JoinCluster(JoinClusterReq) returns (JoinClusterResp);
-  rpc FindLeader(FindLeaderReq) returns (FindLeaderResp);
+  rpc RegisterDataNode(stream RegisterDataNodeReq) returns (stream RegisterDataNodeResp);
+  rpc JoinCluster(stream JoinClusterReq) returns (stream JoinClusterResp);
+  rpc FindLeader(stream FindLeaderReq) returns (stream FindLeaderResp);
   rpc UpdateDataNodeMessage(UpdateDataNodeMessageReq) returns (UpdateDataNodeMessageResp);
 }
 

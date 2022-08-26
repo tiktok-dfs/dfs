@@ -4,6 +4,10 @@ import (
 	"testing"
 )
 
+func TestCheck(t *testing.T) {
+
+}
+
 func TestGetPrePath(t *testing.T) {
 	prePath := GetPrePath("/test/hello.txt")
 	if prePath != "/test/" {

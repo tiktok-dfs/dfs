@@ -16,6 +16,7 @@ import (
 	namenode_pb "go-fs/proto/namenode"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/reflection"
 	"io/ioutil"
 	"log"
@@ -58,7 +59,9 @@ func InitializeNameNodeUtil(host string, master bool, follow, raftId string, ser
 		log.Println("start raft cluster fail:", err)
 	}
 	nameNodeInstance := namenode.NewService(raftNode, ldb, uint64(blockSize), uint64(replicationFactor), uint16(serverPort))
-	server := grpc.NewServer()
+	server := grpc.NewServer(grpc.KeepaliveParams(keepalive.ServerParameters{
+		MaxConnectionIdle: 5 * time.Second,
+	}))
 	namenode_pb.RegisterNameNodeServiceServer(server, nameNodeInstance)
 	tm.Register(server)
 	raftadmin.Register(server, raftNode)
@@ -173,6 +176,11 @@ func newRaft(baseDir string, master bool, follow, myID, myAddress string, fsm ra
 	c.NotifyCh = isLeader
 	c.LocalID = raft.ServerID(myID)
 
+	if master {
+		err := os.RemoveAll(baseDir)
+		if err != nil {
+		}
+	}
 	err := os.MkdirAll(baseDir, 0755)
 	if err != nil {
 		return nil, nil, nil, err
@@ -223,15 +231,23 @@ func newRaft(baseDir string, master bool, follow, myID, myAddress string, fsm ra
 		if err != nil {
 			return nil, nil, nil, err
 		}
-		resp, err := namenode_pb.NewNameNodeServiceClient(conn).JoinCluster(context.Background(), &namenode_pb.JoinClusterReq{
-			Addr:          myAddress,
+		resp, err := namenode_pb.NewNameNodeServiceClient(conn).JoinCluster(context.Background())
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		err = resp.Send(&namenode_pb.JoinClusterReq{
 			Id:            myID,
+			Addr:          myAddress,
 			PreviousIndex: 0,
 		})
 		if err != nil {
 			return nil, nil, nil, err
 		}
-		if resp.Success {
+		recv, err := resp.Recv()
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		if recv.Success {
 			log.Println("join the cluster success")
 		}
 	}
@@ -248,11 +264,23 @@ func FindLeader(addrList string) (string, error) {
 			//表明连接不上，继续遍历节点
 			continue
 		}
-		resp, err := namenode_pb.NewNameNodeServiceClient(conn).FindLeader(context.Background(), &namenode_pb.FindLeaderReq{})
+		resp, err := namenode_pb.NewNameNodeServiceClient(conn).FindLeader(context.Background())
 		if err != nil {
 			continue
 		}
-		res = resp.Addr
+		err = resp.Send(&namenode_pb.FindLeaderReq{})
+		if err != nil {
+			continue
+		}
+		recv, err := resp.Recv()
+		if err != nil {
+			continue
+		}
+		host, port, err := net.SplitHostPort(recv.Addr)
+		if err != nil {
+			continue
+		}
+		res = host + ":" + port
 		break
 	}
 	if res == "" {
