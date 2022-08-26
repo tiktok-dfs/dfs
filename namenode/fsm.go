@@ -17,11 +17,36 @@ var _ raft.FSM = &Service{}
 
 func (nameNode *Service) Apply(l *raft.Log) interface{} {
 	log.Println("用于单机测试判断是否同步数据")
-	err := ioutil.WriteFile(filepath.Join(config.RaftCfg.RaftDataDir, "metadata.dat"), l.Data, 0755)
+
+	filePath := filepath.Join(config.RaftCfg.RaftDataDir, "metadata.dat")
+
+	// 给filePath加锁
+	err := util.LockFile(filePath)
+	if err != nil {
+		log.Println(err)
+	}
+	defer func(filename string) {
+		err := util.UnlockFile(filename)
+		if err != nil {
+			log.Println(err)
+		}
+	}(filePath)
+
+	err = ioutil.WriteFile(filePath, l.Data, 0755)
+
+	//file, err := os.OpenFile(filePath, os.O_RDWR|os.O_CREATE, 0755)
+	//_, err = file.Write(l.Data)
+
 	if err != nil {
 		panic(err)
 	}
+
+	//err = file.Close()
+	//if err != nil {
+	//	return nil
+	//}
 	return nil
+
 }
 
 // Snapshot 生成快照

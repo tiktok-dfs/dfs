@@ -8,8 +8,11 @@ import (
 	transport "github.com/Jille/raft-grpc-transport"
 	"github.com/Jille/raftadmin"
 	"github.com/fsnotify/fsnotify"
+	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"github.com/hashicorp/raft"
 	boltdb "github.com/hashicorp/raft-boltdb"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go-fs/common/config"
 	"go-fs/namenode"
 	"go-fs/pkg/util"
@@ -20,6 +23,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net"
+	"net/http"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -58,11 +62,53 @@ func InitializeNameNodeUtil(host string, master bool, follow, raftId string, ser
 		log.Println("start raft cluster fail:", err)
 	}
 	nameNodeInstance := namenode.NewService(raftNode, ldb, uint64(blockSize), uint64(replicationFactor), uint16(serverPort))
-	server := grpc.NewServer()
+
+	// 注册prometheus
+	// Create a metrics registry.
+	prometheusReg := prometheus.NewRegistry()
+	// Create some standard server metrics.
+	grpcMetrics := grpc_prometheus.NewServerMetrics()
+	// Register standard server metrics to registry.
+	prometheusReg.MustRegister(grpcMetrics)
+
+	server := grpc.NewServer(
+		grpc.StreamInterceptor(grpcMetrics.StreamServerInterceptor()),
+		grpc.UnaryInterceptor(grpcMetrics.UnaryServerInterceptor()),
+	)
+
 	namenode_pb.RegisterNameNodeServiceServer(server, nameNodeInstance)
 	tm.Register(server)
 	raftadmin.Register(server, raftNode)
 	reflection.Register(server)
+
+	// Initialize all metrics.
+	grpcMetrics.InitializeMetrics(server)
+
+	// TODO: HARD CODING
+	p := 9092
+	// Start your http server for prometheus.
+	go func() {
+		initErr := errors.New("init")
+
+		for initErr != nil {
+			// Create a HTTP server for prometheus.
+			httpServer := &http.Server{
+				Handler: promhttp.HandlerFor(
+					prometheusReg,
+					promhttp.HandlerOpts{},
+				),
+				// TODO: HARD CODING
+				Addr: ":" + strconv.Itoa(p),
+			}
+
+			p += 1
+
+			initErr = httpServer.ListenAndServe()
+		}
+
+	}()
+
+	log.Println("server for prometheus started on port: " + strconv.Itoa(p-1))
 
 	go func() {
 		if err := server.Serve(listener); err != nil {
@@ -121,10 +167,42 @@ func listenLeaderChanges(filename string, s *namenode.Service) {
 					if s.RaftNode.State() == raft.Leader {
 						continue
 					}
+
+					// 给文件加锁
+					err := util.LockFile(filename)
+					if err != nil {
+						log.Println(err)
+					}
+
 					bytes, err := ioutil.ReadFile(filename)
 					if err != nil {
 						log.Println("cannot read file:", err)
 					}
+
+					//file, err := os.OpenFile(filename, os.O_RDONLY, 0666)
+					//if err != nil {
+					//	log.Println("cannot open file:", err)
+					//}
+					//
+					//// 读取 file 内容
+					//data := make([]byte, 9999999)
+					//index, err := file.Read(data)
+					//data = data[:index]
+					//if err != nil {
+					//	log.Println("cannot read file:", err)
+					//}
+					//err = file.Close()
+					//if err != nil {
+					//	return
+					//}
+
+					err = util.UnlockFile(filename)
+					if err != nil {
+						log.Println(err)
+					}
+
+					//log.Println("read file:", string(data))
+
 					var srv namenode.Service
 					err = json.Unmarshal(bytes, &srv)
 					if err != nil {

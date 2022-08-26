@@ -234,7 +234,7 @@ func Get(nameNodeConn *grpc.ClientConn, sourceFilePath string) (fileContents str
 	return fileContents, getStatus, nil
 }
 
-func Delete(nameNodeConn *grpc.ClientConn, filename string) bool {
+func Delete(nameNodeConn *grpc.ClientConn, filename string) (bool, error) {
 	zap.S().Debug("filename: ", filename)
 
 	filename = util.ModPath(filename)
@@ -251,7 +251,7 @@ func Delete(nameNodeConn *grpc.ClientConn, filename string) bool {
 		}
 		zap.S().Error("调用NameNode的Delete请求发生错误:", err)
 
-		return false
+		return false, err
 	}
 	zap.S().Debug("调用NameNode的Delete请求读取数据的信息为：", resp.NameNodeMetaDataList)
 	deleteStatus := false
@@ -265,7 +265,7 @@ func Delete(nameNodeConn *grpc.ClientConn, filename string) bool {
 			conn, err := grpc.Dial(dni.Host+":"+dni.ServicePort, grpc.WithTransportCredentials(insecure.NewCredentials()))
 			if err != nil {
 				zap.S().Error("cannot connect datanode:", dni.Host, ":", dni.ServicePort)
-				return false
+				return false, err
 			}
 			defer conn.Close()
 
@@ -275,7 +275,7 @@ func Delete(nameNodeConn *grpc.ClientConn, filename string) bool {
 			})
 			if err != nil {
 				zap.S().Error("cannot dial method from datanode:", dni.Host, ":", dni.ServicePort)
-				return false
+				return false, err
 			}
 			if deleteResp.Success {
 				deleteStatus = true
@@ -284,7 +284,7 @@ func Delete(nameNodeConn *grpc.ClientConn, filename string) bool {
 			}
 		}
 	}
-	return deleteStatus
+	return deleteStatus, err
 }
 
 func Stat(nameNodeConn *grpc.ClientConn, filename string) (string, error) {
@@ -454,7 +454,7 @@ func List(nameNodeConn *grpc.ClientConn, parentPath string) (string, error) {
 		log.Println("NameNode List Error:", err)
 		return "", err
 	}
-	ls := fmt.Sprintf("dir: %s\nfile: %s", resp.DirName, resp.FileName)
+	ls := fmt.Sprintf("\ndir: %s\nfile: %s", resp.DirName, resp.FileName)
 	return ls, nil
 }
 

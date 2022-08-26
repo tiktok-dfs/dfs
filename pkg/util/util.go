@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"syscall"
 )
 
 type DataNodeInstance struct {
@@ -79,4 +80,33 @@ func ModFilePath(path string) string {
 func GetPrePath(filename string) string {
 	dir, _ := filepath.Split(filename)
 	return dir
+}
+
+// LockFile 文件加锁
+func LockFile(filename string) error {
+
+	file, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE, 0666)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	err = syscall.Flock(int(file.Fd()), syscall.LOCK_EX)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// UnlockFile 解锁文件
+func UnlockFile(filename string) error {
+	file, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE, 0666)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	err = syscall.Flock(int(file.Fd()), syscall.LOCK_UN)
+	if err != nil {
+		return err
+	}
+	return nil
 }
