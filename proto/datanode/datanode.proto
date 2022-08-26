@@ -4,6 +4,9 @@ package datanode;
 option go_package = "./proto/datanode";
 
 service DataNode {
+  //EC
+  rpc PutByEC(PutByEcReq) returns (PutByEcResp){}
+
   rpc Ping(PingReq) returns (PingResp){}
   rpc HeartBeat(HeartBeatReq) returns (HeartBeatResp){}
   rpc Put(PutReq) returns (PutResp){}
@@ -21,6 +24,16 @@ service DataNode {
   //    repeated 请求结构体 请求参数3 = 3;(定义数组）
   //    int 同样
   // }
+}
+
+message PutByEcReq{
+  string Path = 1;
+  string BlockId = 2;
+  bytes Data = 3;
+}
+
+message PutByEcResp {
+  bool Success = 1;
 }
 
 message StatReq {

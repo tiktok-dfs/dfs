@@ -678,10 +678,20 @@ func (s *Service) ECAssignDataNode(c context.Context, req *namenode_pb.ECAssignD
 	for k, _ := range s.IdToDataNodes {
 		dataNodesAvailable = append(dataNodesAvailable, k)
 	}
+	//已经被选的 data node, 不应该在被选择
+	dataNodePresentMap := make(map[int64]struct{})
 	for i := 0; i < int(req.DatanodeNumber); i++ {
 		blockId := uuid.New().String()
 		s.FileNameToBlocks[req.Filename] = append(s.FileNameToBlocks[req.Filename], blockId)
-		dataNodes := s.assignDataNodes(blockId, dataNodesAvailable, 1)
+		var dataNodes []int64
+		for k := range s.IdToDataNodes {
+			_, ok := dataNodePresentMap[k]
+			if !ok {
+				dataNodes = append(dataNodes, k)
+				dataNodePresentMap[k] = struct{}{}
+				break
+			}
+		}
 		var blockAddresses []*namenode_pb.DataNodeInstance
 		for _, id := range dataNodes {
 			blockAddresses = append(blockAddresses, &namenode_pb.DataNodeInstance{
@@ -689,6 +699,7 @@ func (s *Service) ECAssignDataNode(c context.Context, req *namenode_pb.ECAssignD
 				ServicePort: s.IdToDataNodes[id].ServicePort,
 			})
 		}
+		s.BlockToDataNodeIds[blockId] = dataNodes
 		metaDataList = append(metaDataList, &namenode_pb.NameNodeMetaData{
 			BlockId:        blockId,
 			BlockAddresses: blockAddresses,

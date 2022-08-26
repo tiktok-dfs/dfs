@@ -467,18 +467,8 @@ func PutByEc(nameNodeConn *grpc.ClientConn, sourceFilePath string, destFilePath 
 		return false
 	}
 	prePath := util.GetPrePath(destFilePath)
-	nodes, err := namenode_pb.NewNameNodeServiceClient(nameNodeConn).GetDataNodes(context.Background(), &namenode_pb.GetDataNodesReq{})
-	if err != nil {
-		log.Println("NameNode GetDataNodes Error:", err)
-		return false
-	}
-	dataShardsNum := len(nodes.DataNodeList)
-	if dataShardsNum >= MaxShardsNum {
-		dataShardsNum = MaxShardsNum
-	}
-	parityShardsNum := dataShardsNum / 3
 	//例如三个节点分成两个data切片和一个parity切片，暂时不考虑EC冗余配比
-	encoder, err := reedsolomon.New(dataShardsNum-parityShardsNum, parityShardsNum)
+	encoder, err := reedsolomon.New(4, 2)
 	if err != nil {
 		log.Println("cannot new reedsolomon:", err)
 		return false
@@ -489,14 +479,16 @@ func PutByEc(nameNodeConn *grpc.ClientConn, sourceFilePath string, destFilePath 
 		return false
 	}
 	//接下来向NameNode发起请求给data分配datanode节点
+	filename := util.ModFilePath(destFilePath)
 	node, err := namenode_pb.NewNameNodeServiceClient(nameNodeConn).ECAssignDataNode(context.Background(), &namenode_pb.ECAssignDataNodeReq{
-		Filename:       destFilePath,
+		Filename:       filename,
 		DatanodeNumber: int64(len(data)),
 	})
 	if err != nil {
 		log.Println("NameNode ECAssignDataNode Error:", err)
 		return false
 	}
+	log.Println("EC PUT:", node)
 	//向datanode写入数据
 	for i, m := range node.NameNodeMetaData {
 		write := data[i]
@@ -507,11 +499,10 @@ func PutByEc(nameNodeConn *grpc.ClientConn, sourceFilePath string, destFilePath 
 				log.Println("DataNode Dial Error:", err)
 				return false
 			}
-			resp, err := dn.NewDataNodeClient(conn).Put(context.Background(), &dn.PutReq{
-				Path:             prePath,
-				Data:             write,
-				BlockId:          filename,
-				ReplicationNodes: nil,
+			resp, err := dn.NewDataNodeClient(conn).PutByEC(context.Background(), &dn.PutByEcReq{
+				Path:    prePath,
+				Data:    write,
+				BlockId: filename,
 			})
 			if err != nil {
 				log.Println("DataNode Put Error:", err)
@@ -532,6 +523,7 @@ func GetByEc(nameNodeConn *grpc.ClientConn, filename string) (fileContents strin
 	data, err := namenode_pb.NewNameNodeServiceClient(nameNodeConn).ReadData(context.Background(), &namenode_pb.ReadRequst{
 		FileName: filename,
 	})
+	log.Println("GET EC:", data)
 	if err != nil {
 		log.Println("NameNode ReadData Error:", err)
 		return
@@ -565,6 +557,7 @@ func RecoverDataByEC(nameNodeConn *grpc.ClientConn, filename string, deadDataNod
 	resp, err := namenode_pb.NewNameNodeServiceClient(nameNodeConn).ReadData(context.Background(), &namenode_pb.ReadRequst{
 		FileName: filename,
 	})
+	log.Println("Recover:", resp)
 	if err != nil {
 		log.Println("NameNode ReadData Error:", err)
 		return "", false
@@ -591,8 +584,9 @@ func RecoverDataByEC(nameNodeConn *grpc.ClientConn, filename string, deadDataNod
 			}
 		}
 	}
-	//一般采用三个节点测试，此处直接赋值了
-	encoder, err := reedsolomon.New(2, 1)
+	//一般采用6个节点测试，此处直接赋值了
+	log.Println(data)
+	encoder, err := reedsolomon.New(4, 2)
 	verify, err := encoder.Verify(data)
 	if !verify {
 		err := encoder.Reconstruct(data)

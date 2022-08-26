@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.2.0
 // - protoc             v3.21.4
-// source: datanode/datanode.proto
+// source: proto/datanode/datanode.proto
 
 package datanode
 
@@ -22,6 +22,8 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type DataNodeClient interface {
+	//EC
+	PutByEC(ctx context.Context, in *PutByEcReq, opts ...grpc.CallOption) (*PutByEcResp, error)
 	Ping(ctx context.Context, in *PingReq, opts ...grpc.CallOption) (*PingResp, error)
 	HeartBeat(ctx context.Context, in *HeartBeatReq, opts ...grpc.CallOption) (*HeartBeatResp, error)
 	Put(ctx context.Context, in *PutReq, opts ...grpc.CallOption) (*PutResp, error)
@@ -39,6 +41,15 @@ type dataNodeClient struct {
 
 func NewDataNodeClient(cc grpc.ClientConnInterface) DataNodeClient {
 	return &dataNodeClient{cc}
+}
+
+func (c *dataNodeClient) PutByEC(ctx context.Context, in *PutByEcReq, opts ...grpc.CallOption) (*PutByEcResp, error) {
+	out := new(PutByEcResp)
+	err := c.cc.Invoke(ctx, "/datanode.DataNode/PutByEC", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *dataNodeClient) Ping(ctx context.Context, in *PingReq, opts ...grpc.CallOption) (*PingResp, error) {
@@ -126,6 +137,8 @@ func (c *dataNodeClient) Mkdir(ctx context.Context, in *MkdirReq, opts ...grpc.C
 // All implementations must embed UnimplementedDataNodeServer
 // for forward compatibility
 type DataNodeServer interface {
+	//EC
+	PutByEC(context.Context, *PutByEcReq) (*PutByEcResp, error)
 	Ping(context.Context, *PingReq) (*PingResp, error)
 	HeartBeat(context.Context, *HeartBeatReq) (*HeartBeatResp, error)
 	Put(context.Context, *PutReq) (*PutResp, error)
@@ -142,6 +155,9 @@ type DataNodeServer interface {
 type UnimplementedDataNodeServer struct {
 }
 
+func (UnimplementedDataNodeServer) PutByEC(context.Context, *PutByEcReq) (*PutByEcResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method PutByEC not implemented")
+}
 func (UnimplementedDataNodeServer) Ping(context.Context, *PingReq) (*PingResp, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Ping not implemented")
 }
@@ -180,6 +196,24 @@ type UnsafeDataNodeServer interface {
 
 func RegisterDataNodeServer(s grpc.ServiceRegistrar, srv DataNodeServer) {
 	s.RegisterService(&DataNode_ServiceDesc, srv)
+}
+
+func _DataNode_PutByEC_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PutByEcReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DataNodeServer).PutByEC(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/datanode.DataNode/PutByEC",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DataNodeServer).PutByEC(ctx, req.(*PutByEcReq))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _DataNode_Ping_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -352,6 +386,10 @@ var DataNode_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*DataNodeServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
+			MethodName: "PutByEC",
+			Handler:    _DataNode_PutByEC_Handler,
+		},
+		{
 			MethodName: "Ping",
 			Handler:    _DataNode_Ping_Handler,
 		},
@@ -389,5 +427,5 @@ var DataNode_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "datanode/datanode.proto",
+	Metadata: "proto/datanode/datanode.proto",
 }

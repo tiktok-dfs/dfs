@@ -21,7 +21,7 @@ func (nameNode *Service) Apply(l *raft.Log) interface{} {
 	filePath := filepath.Join(config.RaftCfg.RaftDataDir, "metadata.dat")
 
 	// 给filePath加锁
-	err := util.LockFile(filePath)
+	/*err := util.LockFile(filePath)
 	if err != nil {
 		log.Println(err)
 	}
@@ -30,9 +30,9 @@ func (nameNode *Service) Apply(l *raft.Log) interface{} {
 		if err != nil {
 			log.Println(err)
 		}
-	}(filePath)
+	}(filePath)*/
 
-	err = ioutil.WriteFile(filePath, l.Data, 0755)
+	err := ioutil.WriteFile(filePath, l.Data, 0755)
 
 	//file, err := os.OpenFile(filePath, os.O_RDWR|os.O_CREATE, 0755)
 	//_, err = file.Write(l.Data)

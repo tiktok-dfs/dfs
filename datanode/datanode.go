@@ -124,6 +124,26 @@ func (s *Server) Put(c context.Context, req *dn.PutReq) (*dn.PutResp, error) {
 	return replication, nil
 }
 
+func (s *Server) PutByEC(c context.Context, req *dn.PutByEcReq) (*dn.PutByEcResp, error) {
+	zap.S().Debug("写入blockId为", req.BlockId)
+	log.Println(req)
+	fileWriteHandler, err := os.Create(s.DataDirectory + req.Path + req.BlockId)
+	if err != nil {
+		zap.S().Debug("data directory create error: ", err)
+		return nil, err
+	}
+	defer fileWriteHandler.Close()
+	zap.S().Debug("data directory create success")
+
+	fileWriter := bufio.NewWriter(fileWriteHandler)
+	_, err = fileWriter.WriteString(string(req.Data))
+	if err != nil {
+		return nil, errors.New("写文件失败")
+	}
+	fileWriter.Flush()
+	return &dn.PutByEcResp{Success: true}, nil
+}
+
 func (s *Server) Get(c context.Context, req *dn.GetReq) (*dn.GetResp, error) {
 	zap.S().Debug("读取的BlockId为：", req.BlockId)
 	dataBytes, err := ioutil.ReadFile(s.DataDirectory + req.PrePath + req.BlockId)
