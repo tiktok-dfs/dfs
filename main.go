@@ -124,7 +124,10 @@ func WorkByCli() {
 				fileWriter.Flush()
 
 			} else if *clientOperationPtr == "delete" {
-				status := client.DeleteHandler(*clientNameNodePortPtr, *clientFilenamePtr)
+				status, err := client.DeleteHandler(*clientNameNodePortPtr, *clientFilenamePtr)
+				if err != nil {
+					log.Println(err.Error())
+				}
 				log.Println("Delete Status:", status)
 
 			} else if *clientOperationPtr == "stat" {

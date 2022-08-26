@@ -33,7 +33,7 @@ func GetHandler(nameNodeAddress string, sourceFilePath string) (string, bool, er
 	return client.Get(rpcClient, sourceFilePath)
 }
 
-func DeleteHandler(nameNodeAddress string, sourceFilePath string) bool {
+func DeleteHandler(nameNodeAddress string, sourceFilePath string) (bool, error) {
 	rpcClient, err := initializeClientUtil(nameNodeAddress)
 	util.Check(err)
 	defer rpcClient.Close()

@@ -3,3 +3,8 @@ cluster/
 fromserver.txt
 go-fs
 logs/
+1.py
+Cluster/
+doc/
+runtime.log
+runtime_err.log
