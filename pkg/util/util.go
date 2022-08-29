@@ -1,12 +1,13 @@
 package util
 
 import (
+	"github.com/go-redis/redis"
 	"go.uber.org/zap"
 	"log"
 	"os"
 	"path/filepath"
 	"strings"
-	"syscall"
+	"time"
 )
 
 type DataNodeInstance struct {
@@ -82,31 +83,73 @@ func GetPrePath(filename string) string {
 	return dir
 }
 
-// LockFile 文件加锁
-func LockFile(filename string) error {
+//// LockFile 文件加锁
+//func LockFile(filename string) error {
+//
+//	file, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE, 0666)
+//	if err != nil {
+//		return err
+//	}
+//	defer file.Close()
+//	err = syscall.Flock(int(file.Fd()), syscall.LOCK_EX)
+//	if err != nil {
+//		return err
+//	}
+//	return nil
+//}
+//
+//// UnlockFile 解锁文件
+//func UnlockFile(filename string) error {
+//	file, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE, 0666)
+//	if err != nil {
+//		return err
+//	}
+//	defer file.Close()
+//	err = syscall.Flock(int(file.Fd()), syscall.LOCK_UN)
+//	if err != nil {
+//		return err
+//	}
+//	return nil
+//}
 
-	file, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE, 0666)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-	err = syscall.Flock(int(file.Fd()), syscall.LOCK_EX)
-	if err != nil {
-		return err
-	}
-	return nil
+var RedisDB *redis.Client
+
+// InitRedis 初始化redis，用于分布式锁，理论依据：https://blog.51cto.com/u_13460811/5262747
+func InitRedis() {
+	RedisDB = redis.NewClient(&redis.Options{
+		Addr: "localhost:6379",
+	})
+	_, err := RedisDB.Ping().Result()
+
+	Check(err)
 }
 
-// UnlockFile 解锁文件
-func UnlockFile(filename string) error {
-	file, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE, 0666)
-	if err != nil {
-		return err
+// Lock 分布式锁
+func Lock(key string) bool {
+	var result bool
+
+	for {
+		retryTimes := 0
+		retryTimes++
+		success, err := RedisDB.SetNX(key, "1", 0).Result()
+		// TODO:解决潜在的死锁问题，目前非主动不会释放
+
+		Check(err)
+		if success {
+			result = true
+			break
+		}
+		if retryTimes >= 1000 {
+			log.Println("retryTimes>=1000")
+			break
+		}
+
+		time.Sleep(time.Millisecond)
 	}
-	defer file.Close()
-	err = syscall.Flock(int(file.Fd()), syscall.LOCK_UN)
-	if err != nil {
-		return err
-	}
-	return nil
+	return result
+}
+
+// Unlock 分布式锁解锁
+func Unlock(key string) {
+	RedisDB.Del(key)
 }
