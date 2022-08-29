@@ -168,10 +168,12 @@ func listenLeaderChanges(filename string, s *namenode.Service) {
 						continue
 					}
 
-					// 给文件加锁
-					err := util.LockFile(filename)
-					if err != nil {
-						log.Println(err)
+					// 给文件加锁，直至成功
+					if !util.Lock(filename) {
+						log.Println("文件加锁失败")
+						continue
+					} else {
+						log.Println("文件加锁成功")
 					}
 
 					bytes, err := ioutil.ReadFile(filename)
@@ -179,29 +181,7 @@ func listenLeaderChanges(filename string, s *namenode.Service) {
 						log.Println("cannot read file:", err)
 					}
 
-					//file, err := os.OpenFile(filename, os.O_RDONLY, 0666)
-					//if err != nil {
-					//	log.Println("cannot open file:", err)
-					//}
-					//
-					//// 读取 file 内容
-					//data := make([]byte, 9999999)
-					//index, err := file.Read(data)
-					//data = data[:index]
-					//if err != nil {
-					//	log.Println("cannot read file:", err)
-					//}
-					//err = file.Close()
-					//if err != nil {
-					//	return
-					//}
-
-					err = util.UnlockFile(filename)
-					if err != nil {
-						log.Println(err)
-					}
-
-					//log.Println("read file:", string(data))
+					util.Unlock(filename)
 
 					var srv namenode.Service
 					err = json.Unmarshal(bytes, &srv)

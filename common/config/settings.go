@@ -2,6 +2,7 @@ package config
 
 import (
 	"github.com/sirupsen/logrus"
+	"go-fs/pkg/util"
 )
 
 type NameNode struct {
@@ -40,6 +41,8 @@ func Init() {
 	if err = conf.UnmarshalKey("raft", &RaftCfg); err != nil {
 		logrus.Panicf("parse config err, app: %v", err)
 	}
+
+	util.InitRedis()
 
 	logrus.Debug("parse config success")
 }

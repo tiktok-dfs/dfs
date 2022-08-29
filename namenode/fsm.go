@@ -21,18 +21,17 @@ func (nameNode *Service) Apply(l *raft.Log) interface{} {
 	filePath := filepath.Join(config.RaftCfg.RaftDataDir, "metadata.dat")
 
 	// 给filePath加锁
-	err := util.LockFile(filePath)
-	if err != nil {
-		log.Println(err)
+	success := util.Lock(filePath)
+	if !success {
+		log.Println("文件加锁失败")
+		return nil
+	} else {
+		log.Println("文件加锁成功")
 	}
-	defer func(filename string) {
-		err := util.UnlockFile(filename)
-		if err != nil {
-			log.Println(err)
-		}
-	}(filePath)
 
-	err = ioutil.WriteFile(filePath, l.Data, 0755)
+	err := ioutil.WriteFile(filePath, l.Data, 0755)
+
+	util.Unlock(filePath)
 
 	//file, err := os.OpenFile(filePath, os.O_RDWR|os.O_CREATE, 0755)
 	//_, err = file.Write(l.Data)
