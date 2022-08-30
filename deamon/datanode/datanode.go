@@ -158,7 +158,7 @@ func listenLeader(addr string, instance *datanode.Server) {
 
 func heartBeatToNameNode(instance *datanode.Server, hostname string) {
 	i := 0
-	for range time.Tick(time.Second * 5) {
+	for range time.Tick(time.Second * 10) {
 		i++
 		addr := instance.NameNodeHost + ":" + strconv.Itoa(int(instance.NameNodePort))
 		conn, err := grpc.Dial(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))

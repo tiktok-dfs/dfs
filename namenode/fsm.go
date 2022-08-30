@@ -8,7 +8,6 @@ import (
 	"go-fs/pkg/util"
 	"io"
 	"io/ioutil"
-	"log"
 	"path/filepath"
 	"time"
 )
@@ -16,17 +15,14 @@ import (
 var _ raft.FSM = &Service{}
 
 func (nameNode *Service) Apply(l *raft.Log) interface{} {
-	log.Println("用于单机测试判断是否同步数据")
 
 	filePath := filepath.Join(config.RaftCfg.RaftDataDir, "metadata.dat")
 
 	// 给filePath加锁
 	success := util.Lock(filePath)
 	if !success {
-		log.Println("文件加锁失败")
 		return nil
 	} else {
-		log.Println("文件加锁成功")
 	}
 
 	err := ioutil.WriteFile(filePath, l.Data, 0755)
