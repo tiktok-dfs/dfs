@@ -1,6 +1,7 @@
 package namenode
 
 import (
+	bytes2 "bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -13,6 +14,7 @@ import (
 	boltdb "github.com/hashicorp/raft-boltdb"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/tidwall/wal"
 	"go-fs/common/config"
 	"go-fs/namenode"
 	"go-fs/pkg/util"
@@ -61,7 +63,13 @@ func InitializeNameNodeUtil(host string, master bool, follow, raftId string, ser
 	if err != nil {
 		log.Println("start raft cluster fail:", err)
 	}
-	nameNodeInstance := namenode.NewService(raftNode, ldb, uint64(blockSize), uint64(replicationFactor), uint16(serverPort))
+	open, err := wal.Open("wal", nil)
+	index, err := open.LastIndex()
+	if index == 0 {
+		//表明开始记录日志了
+		open.Write(1, []byte("--------------------"))
+	}
+	nameNodeInstance := namenode.NewService(open, raftNode, ldb, uint64(blockSize), uint64(replicationFactor), uint16(serverPort))
 
 	// 注册prometheus
 	// Create a metrics registry.
@@ -120,7 +128,7 @@ func InitializeNameNodeUtil(host string, master bool, follow, raftId string, ser
 	log.Println("NameNode daemon started on port: " + strconv.Itoa(serverPort))
 
 	go func(s *namenode.Service) {
-		for range time.Tick(5 * time.Second) {
+		for range time.Tick(10 * time.Second) {
 			if s.RaftNode == nil {
 				log.Println("节点加入有误，raft未建立成功")
 				continue
@@ -136,6 +144,9 @@ func InitializeNameNodeUtil(host string, master bool, follow, raftId string, ser
 	_, err = os.Create(listenPath)
 	if err != nil {
 	}
+
+	go listenWalLog(nameNodeInstance)
+
 	go listenLeaderChanges(listenPath, nameNodeInstance)
 
 	// 监测datanode的心跳
@@ -149,6 +160,67 @@ func InitializeNameNodeUtil(host string, master bool, follow, raftId string, ser
 
 	server.GracefulStop()
 
+}
+
+func listenWalLog(s *namenode.Service) {
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer watcher.Close()
+	done := make(chan bool)
+	go func() {
+		for {
+			select {
+			case event := <-watcher.Events:
+				if event.Op&fsnotify.Write == fsnotify.Write {
+					if s.RaftNode.State() == raft.Leader {
+
+						index, err := s.Log.LastIndex()
+						if err != nil {
+							log.Println("error:", err)
+						}
+						bytes, err := s.Log.Read(index)
+						if bytes2.EqualFold(bytes, []byte("rollback")) {
+							//如果是rollback记录
+							log.Println("监听到rollback日志")
+							data, err := s.Log.Read(index - 1)
+							if err != nil {
+								log.Println("error:", err)
+							}
+							var r namenode.Service
+							err = json.Unmarshal(data, &r)
+							if err != nil {
+								log.Println("error:", err)
+							}
+							copyService(s, r)
+						} else if bytes2.EqualFold(bytes, []byte("commit")) {
+							//如果是commit记录
+							log.Println("监听到commit日志")
+							bytes, err := json.Marshal(s)
+							if err != nil {
+								log.Println("error:", err)
+							}
+							s.RaftNode.Apply(bytes, time.Second*1)
+						} else {
+							//如果是开启事务的，continue
+							log.Println("监听到start日志，开启事务")
+							continue
+						}
+
+					}
+				}
+			case err := <-watcher.Errors:
+				log.Println("error:", err)
+				continue
+			}
+		}
+	}()
+	err = watcher.Add("wal/00000000000000000001")
+	if err != nil {
+		log.Fatal(err)
+	}
+	<-done
 }
 
 // 监听主节点元数据信息变化
@@ -170,10 +242,8 @@ func listenLeaderChanges(filename string, s *namenode.Service) {
 
 					// 给文件加锁，直至成功
 					if !util.Lock(filename) {
-						log.Println("文件加锁失败")
 						continue
 					} else {
-						log.Println("文件加锁成功")
 					}
 
 					bytes, err := ioutil.ReadFile(filename)
@@ -215,7 +285,7 @@ func checkDataNode(instance *namenode.Service) {
 		for k, v := range instance.IdToDataNodes {
 			addr := v.Host + ":" + v.ServicePort
 			lastHeartBeatTime := instance.DataNodeHeartBeat[addr]
-			if lastHeartBeatTime.Add(time.Second*8).Unix() < time.Now().Unix() {
+			if lastHeartBeatTime.Add(time.Second*15).Unix() < time.Now().Unix() {
 				var reply bool
 				reDistributeError := instance.ReDistributeData(&namenode.ReDistributeDataRequest{DataNodeUri: addr}, &reply)
 				util.Check(reDistributeError)
@@ -230,6 +300,13 @@ func newRaft(baseDir string, master bool, follow, myID, myAddress string, fsm ra
 	isLeader := make(chan bool, 1)
 	c.NotifyCh = isLeader
 	c.LocalID = raft.ServerID(myID)
+
+	if master {
+		err := os.RemoveAll(config.RaftCfg.RaftDataDir)
+		if err != nil {
+
+		}
+	}
 
 	err := os.MkdirAll(baseDir, 0755)
 	if err != nil {

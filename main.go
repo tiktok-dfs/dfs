@@ -8,6 +8,7 @@ import (
 	"go-fs/deamon/datanode"
 	"go-fs/deamon/namenode"
 	"go-fs/pkg/logger"
+	"go-fs/pkg/util"
 	"go.uber.org/zap"
 	"log"
 	"os"
@@ -73,6 +74,7 @@ func WorkByCli() {
 		if *dataLocation != "" {
 			dataNodeDataLocationPtr = *dataLocation
 		}
+
 		datanode.InitializeDataNodeUtil(*datanodeHost, *nameNodeAddr, dataNodePortPtr, dataNodeDataLocationPtr)
 
 	case "namenode":
@@ -94,13 +96,16 @@ func WorkByCli() {
 
 		if !*ec {
 			if *clientOperationPtr == "put" {
+				util.Lock("put")
 				status, err := client.PutHandler(*clientNameNodePortPtr, *clientSourcePathPtr, *clientFilenamePtr)
 				if err != nil {
 					log.Println(err.Error())
 				}
 				log.Printf("Put status: %t\n", status)
+				util.Unlock("put")
 
 			} else if *clientOperationPtr == "get" {
+				util.Lock("get")
 				contents, status, err := client.GetHandler(*clientNameNodePortPtr, *clientFilenamePtr)
 				if err != nil {
 					log.Println(err.Error())
@@ -122,15 +127,19 @@ func WorkByCli() {
 				fileWriter := bufio.NewWriter(fileWriteHandler)
 				fileWriter.WriteString(contents)
 				fileWriter.Flush()
+				util.Unlock("get")
 
 			} else if *clientOperationPtr == "delete" {
+				util.Lock("delete")
 				status, err := client.DeleteHandler(*clientNameNodePortPtr, *clientFilenamePtr)
 				if err != nil {
 					log.Println(err.Error())
 				}
 				log.Println("Delete Status:", status)
+				util.Unlock("delete")
 
 			} else if *clientOperationPtr == "stat" {
+				util.Lock("stat")
 				resp, err := client.StatHandler(*clientNameNodePortPtr, *clientFilenamePtr)
 				if err != nil {
 					zap.S().Debug("Stat Error:", err)
@@ -138,22 +147,29 @@ func WorkByCli() {
 					return
 				}
 				log.Println(resp)
+				util.Unlock("stat")
 
 			} else if *clientOperationPtr == "mkdir" {
+				util.Lock("mkdir")
 				status := client.MkdirHandler(*clientNameNodePortPtr, *clientFilenamePtr)
 				log.Println("Mkdir Status:", status)
+				util.Unlock("mkdir")
 
 			} else if *clientOperationPtr == "mv" {
+				util.Lock("mv")
 				status := client.RenameHandle(*clientNameNodePortPtr, *clientOldFilenamePtr, *clientNewFilenamePtr)
 				log.Println("mv Status:", status)
+				util.Unlock("mv")
 
 			} else if *clientOperationPtr == "ls" {
+				util.Lock("ls")
 				resp, err := client.ListHandler(*clientNameNodePortPtr, *clientFilenamePtr)
 				if err != nil {
 					zap.S().Debug("Ls Error:", err)
 					return
 				}
 				log.Println(resp)
+				util.Unlock("ls")
 			}
 		} else {
 			if *clientOperationPtr == "put" {

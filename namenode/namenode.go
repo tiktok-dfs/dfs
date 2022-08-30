@@ -6,6 +6,7 @@ import (
 	"errors"
 	"github.com/hashicorp/raft"
 	boltdb "github.com/hashicorp/raft-boltdb"
+	"github.com/tidwall/wal"
 	"go-fs/pkg/e"
 	"go-fs/pkg/tree"
 	"go-fs/pkg/util"
@@ -51,6 +52,7 @@ type Service struct {
 	DirTree            *tree.DirTree
 	RaftNode           *raft.Raft
 	RaftLog            *boltdb.BoltStore
+	Log                *wal.Log
 }
 
 type DataNodeMessage struct {
@@ -61,7 +63,7 @@ type DataNodeMessage struct {
 	TotalDisk  uint64
 }
 
-func NewService(r *raft.Raft, log *boltdb.BoltStore, blockSize uint64, replicationFactor uint64, serverPort uint16) *Service {
+func NewService(l *wal.Log, r *raft.Raft, log *boltdb.BoltStore, blockSize uint64, replicationFactor uint64, serverPort uint16) *Service {
 	return &Service{
 		RaftNode:           r,
 		RaftLog:            log,
@@ -74,6 +76,7 @@ func NewService(r *raft.Raft, log *boltdb.BoltStore, blockSize uint64, replicati
 		DataNodeMessageMap: make(map[string]DataNodeMessage),
 		DataNodeHeartBeat:  make(map[string]time.Time),
 		DirTree:            initDirTree(),
+		Log:                l,
 	}
 }
 
@@ -598,6 +601,21 @@ func (s *Service) HeartBeat(c context.Context, req *namenode_pb.HeartBeatReq) (*
 }
 
 func (s *Service) RegisterDataNode(c context.Context, req *namenode_pb.RegisterDataNodeReq) (*namenode_pb.RegisterDataNodeResp, error) {
+	bytes, err := json.Marshal(s)
+	if err != nil {
+		zap.L().Error("cannot parse json")
+		return &namenode_pb.RegisterDataNodeResp{}, err
+	}
+	index, err := s.Log.LastIndex()
+	if err != nil {
+		zap.L().Error("cannot get last index")
+		return &namenode_pb.RegisterDataNodeResp{}, err
+	}
+	err = s.Log.Write(index+1, bytes)
+	if err != nil {
+		zap.L().Error("cannot write json")
+		panic(err)
+	}
 	s.DataNodeHeartBeat[req.Addr] = time.Now()
 	s.DataNodeMessageMap[req.Addr] = DataNodeMessage{
 		UsedDisk:   req.UsedDisk,
@@ -606,20 +624,34 @@ func (s *Service) RegisterDataNode(c context.Context, req *namenode_pb.RegisterD
 		TotalDisk:  req.TotalDisk,
 		CpuPercent: req.CpuPercent,
 	}
+	if true {
+		err = s.Log.Write(index+2, []byte("rollback"))
+		if err != nil {
+			zap.L().Error("cannot write json")
+		}
+		return &namenode_pb.RegisterDataNodeResp{}, errors.New("test")
+	}
 	host, port, err := net.SplitHostPort(req.Addr)
 	if err != nil {
+		err = s.Log.Write(index+2, []byte("rollback"))
+		if err != nil {
+			zap.L().Error("cannot write json")
+		}
 		return &namenode_pb.RegisterDataNodeResp{}, err
 	}
 	s.IdToDataNodes[time.Now().Unix()] = util.DataNodeInstance{
 		Host:        host,
 		ServicePort: port,
 	}
-	bytes, err := json.Marshal(s)
+	bytes, err = json.Marshal(s)
 	if err != nil {
 		log.Println("cannot marshal data")
 		return &namenode_pb.RegisterDataNodeResp{}, err
 	}
-	s.RaftNode.Apply(bytes, time.Second*1)
+	err = s.Log.Write(index+2, []byte("commit"))
+	if err != nil {
+		zap.L().Error("cannot write json")
+	}
 	return &namenode_pb.RegisterDataNodeResp{Success: true}, nil
 }
 
