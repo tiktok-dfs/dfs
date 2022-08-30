@@ -1,3 +1,5 @@
+> 本 readme.md 更新大概率不及时，最新版本请访问[飞书文档](https://wod7lykcxh.feishu.cn/docx/doxcnhjeNN6yHFfLTbAxr0QDCXc)
+
 # 一、项目介绍
 
 项目名称： 简易分布式存储系统
