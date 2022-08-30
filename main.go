@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"flag"
+	"fmt"
 	"go-fs/common/config"
 	"go-fs/deamon/client"
 	"go-fs/deamon/datanode"
@@ -96,7 +97,10 @@ func WorkByCli() {
 
 		if !*ec {
 			if *clientOperationPtr == "put" {
-				util.Lock("editingMateData")
+				if !util.Lock("editingMateData") {
+					exit()
+				}
+
 				status, err := client.PutHandler(*clientNameNodePortPtr, *clientSourcePathPtr, *clientFilenamePtr)
 				if err != nil {
 					log.Println(err.Error())
@@ -105,7 +109,10 @@ func WorkByCli() {
 				util.Unlock("editingMateData")
 
 			} else if *clientOperationPtr == "get" {
-				util.Lock("editingMateData")
+				if !util.Lock("editingMateData") {
+					exit()
+				}
+
 				contents, status, err := client.GetHandler(*clientNameNodePortPtr, *clientFilenamePtr)
 				if err != nil {
 					log.Println(err.Error())
@@ -130,7 +137,10 @@ func WorkByCli() {
 				util.Unlock("editingMateData")
 
 			} else if *clientOperationPtr == "delete" {
-				util.Lock("delete")
+				if !util.Lock("editingMateData") {
+					exit()
+				}
+
 				status, err := client.DeleteHandler(*clientNameNodePortPtr, *clientFilenamePtr)
 				if err != nil {
 					log.Println(err.Error())
@@ -139,7 +149,10 @@ func WorkByCli() {
 				util.Unlock("delete")
 
 			} else if *clientOperationPtr == "stat" {
-				util.Lock("stat")
+				if !util.Lock("editingMateData") {
+					exit()
+				}
+
 				resp, err := client.StatHandler(*clientNameNodePortPtr, *clientFilenamePtr)
 				if err != nil {
 					zap.S().Debug("Stat Error:", err)
@@ -150,13 +163,19 @@ func WorkByCli() {
 				util.Unlock("stat")
 
 			} else if *clientOperationPtr == "mkdir" {
-				util.Lock("editingMateData")
+				if !util.Lock("editingMateData") {
+					exit()
+				}
+
 				status := client.MkdirHandler(*clientNameNodePortPtr, *clientFilenamePtr)
 				log.Println("Mkdir Status:", status)
 				util.Unlock("editingMateData")
 
 			} else if *clientOperationPtr == "mv" {
-				util.Lock("editingMateData")
+				if !util.Lock("editingMateData") {
+					exit()
+				}
+
 				status := client.RenameHandle(*clientNameNodePortPtr, *clientOldFilenamePtr, *clientNewFilenamePtr)
 				log.Println("mv Status:", status)
 				util.Unlock("editingMateData")
@@ -190,4 +209,9 @@ func WorkByCli() {
 			}
 		}
 	}
+}
+
+func exit() {
+	fmt.Println("NameNode is busy, please wait")
+	os.Exit(0)
 }
