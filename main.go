@@ -96,16 +96,16 @@ func WorkByCli() {
 
 		if !*ec {
 			if *clientOperationPtr == "put" {
-				util.Lock("put")
+				util.Lock("editingMateData")
 				status, err := client.PutHandler(*clientNameNodePortPtr, *clientSourcePathPtr, *clientFilenamePtr)
 				if err != nil {
 					log.Println(err.Error())
 				}
 				log.Printf("Put status: %t\n", status)
-				util.Unlock("put")
+				util.Unlock("editingMateData")
 
 			} else if *clientOperationPtr == "get" {
-				util.Lock("get")
+				util.Lock("editingMateData")
 				contents, status, err := client.GetHandler(*clientNameNodePortPtr, *clientFilenamePtr)
 				if err != nil {
 					log.Println(err.Error())
@@ -127,7 +127,7 @@ func WorkByCli() {
 				fileWriter := bufio.NewWriter(fileWriteHandler)
 				fileWriter.WriteString(contents)
 				fileWriter.Flush()
-				util.Unlock("get")
+				util.Unlock("editingMateData")
 
 			} else if *clientOperationPtr == "delete" {
 				util.Lock("delete")
@@ -150,26 +150,26 @@ func WorkByCli() {
 				util.Unlock("stat")
 
 			} else if *clientOperationPtr == "mkdir" {
-				util.Lock("mkdir")
+				util.Lock("editingMateData")
 				status := client.MkdirHandler(*clientNameNodePortPtr, *clientFilenamePtr)
 				log.Println("Mkdir Status:", status)
-				util.Unlock("mkdir")
+				util.Unlock("editingMateData")
 
 			} else if *clientOperationPtr == "mv" {
-				util.Lock("mv")
+				util.Lock("editingMateData")
 				status := client.RenameHandle(*clientNameNodePortPtr, *clientOldFilenamePtr, *clientNewFilenamePtr)
 				log.Println("mv Status:", status)
-				util.Unlock("mv")
+				util.Unlock("editingMateData")
 
 			} else if *clientOperationPtr == "ls" {
-				util.Lock("ls")
+				//util.Lock("ls")
 				resp, err := client.ListHandler(*clientNameNodePortPtr, *clientFilenamePtr)
 				if err != nil {
 					zap.S().Debug("Ls Error:", err)
 					return
 				}
 				log.Println(resp)
-				util.Unlock("ls")
+				//util.Unlock("ls")
 			}
 		} else {
 			if *clientOperationPtr == "put" {
