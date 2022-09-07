@@ -501,11 +501,20 @@ func (s *Service) IsDir(c context.Context, req *namenode_pb.IsDirReq) (*namenode
 }
 
 func (s *Service) Rename(c context.Context, req *namenode_pb.RenameReq) (*namenode_pb.RenameResp, error) {
-	list := s.FileNameToBlocks[req.OldFileName]
-	s.FileNameToBlocks[req.NewFileName] = list
-	delete(s.FileNameToBlocks, req.OldFileName)
+	modedOldFileName := util.ModFilePath(req.OldFileName)
+	modedNewFileName := util.ModFilePath(req.NewFileName)
+
+	list := s.FileNameToBlocks[modedOldFileName]
+	s.FileNameToBlocks[modedNewFileName] = list
+	delete(s.FileNameToBlocks, modedOldFileName)
+
+	oldPath := util.ModPath(req.OldFileName)
+	newPath := util.ModPath(req.NewFileName)
+	s.DirTree.Delete(s.DirTree.Root, oldPath)
+	s.DirTree.Insert(newPath)
+
 	zap.S().Debug(s.FileNameToBlocks)
-	zap.S().Debugf("%v", s.DirTree)
+	zap.S().Debugf("%#v", s.DirTree)
 	bytes, err := json.Marshal(s)
 	if err != nil {
 		log.Println("cannot marshal data")
@@ -539,6 +548,8 @@ func (s *Service) Mkdir(c context.Context, req *namenode_pb.MkdirReq) (*namenode
 }
 
 func (s *Service) List(c context.Context, req *namenode_pb.ListReq) (*namenode_pb.ListResp, error) {
+	zap.S().Debugln(s.DirTree.LookAll())
+
 	path := util.ModPath(req.ParentPath)
 	dir := s.DirTree.FindSubDir(path)
 	var dirNameList []string
